@@ -121,8 +121,8 @@ function setView(name) {
 function render() {
   const view = $("#view");
   $("#bottombar").hidden = !["path", "stats", "settings"].includes(state.view);
-  $("#btn-back").hidden = true;
-  $("#progress-wrap").hidden = true;
+  $("#btn-back").hidden = state.view !== "lesson"; // 仅答题/学习页显示
+  $("#progress-wrap").hidden = !(["lesson", "result"].includes(state.view) && state.route && state.route.list);
   document.body.classList.toggle("dark", state.progress.settings.theme === "dark");
   const tab = { path: "path", stats: "stats", settings: "settings" }[state.view];
   $$("#bottombar .tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
@@ -281,13 +281,21 @@ function renderLessonStep(el) {
           </div>
         </div>
         <div class="lesson-foot">
+          <button class="btn btn-ghost btn-sm" id="btn-prev" ${r.seq === 0 ? "disabled" : ""}>← 上一题</button>
           <button class="btn btn-ghost btn-sm" id="btn-ai">🤖 AI 解读</button>
           <button class="btn btn-primary" id="btn-next">继续</button>
         </div>
       </div>`;
     $("#lx").addEventListener("click", () => { if (confirmExit()) setView("path"); });
     $("#btn-next").addEventListener("click", () => { markLearned(q.id); r.seq++; renderLessonStep(el); });
+    const prevBtn = $("#btn-prev");
+    if (prevBtn && !prevBtn.disabled) prevBtn.addEventListener("click", () => { r.seq = Math.max(0, r.seq - 1); renderLessonStep(el); });
     $("#btn-ai").addEventListener("click", () => askAI(q));
+    // 互斥：展开参考答案时收起 AI 解读
+    const reveal = $("#ans-reveal");
+    reveal.addEventListener("toggle", () => {
+      if (reveal.open) { const z = $("#ai-zone"); if (z) z.hidden = true; }
+    });
   } else {
     renderQuizStep(el, q);
   }
@@ -316,6 +324,7 @@ function renderQuizStep(el, q) {
     return;
   }
   const keys = ["A", "B", "C", "D"].slice(0, quiz.options.length);
+  const answeredPick = r.picks ? r.picks[q.id] : undefined; // 已答恢复态（返回上一题）
   el.innerHTML = `
     <div class="lesson-wrap">
       <div class="lesson-head">
@@ -337,12 +346,32 @@ function renderQuizStep(el, q) {
           <div class="md" id="ai-content"></div>
         </div>
       </div>
+      <div class="lesson-foot">
+        <button class="btn btn-ghost btn-sm" id="btn-prev" ${r.seq === 0 ? "disabled" : ""}>← 上一题</button>
+        ${answeredPick !== undefined ? '<button class="btn btn-ghost btn-sm" id="btn-rejudge">📋 查看判题</button>' : ""}
+      </div>
     </div>`;
   $("#lx").addEventListener("click", () => setView("path"));
-  let picked = -1, answered = false;
+  const prevBtn = $("#btn-prev");
+  if (prevBtn && !prevBtn.disabled) prevBtn.addEventListener("click", () => { r.seq = Math.max(0, r.seq - 1); renderLessonStep(el); });
+
+  // 恢复已答状态（返回上一题时不重复计分、锁定选项、不自动弹判题）
+  if (answeredPick !== undefined) {
+    $$(".option", el).forEach(b => {
+      const i = +b.dataset.i; b.disabled = true;
+      if (i === quiz.answer) b.classList.add("correct");
+      else if (i === answeredPick) b.classList.add("wrong");
+    });
+    const rj = $("#btn-rejudge");
+    if (rj) rj.addEventListener("click", () => showJudge(answeredPick === quiz.answer, quiz.explain || "可展开 AI 解读查看详解。", q, { restore: true }));
+    return;
+  }
+
   $$(".option", el).forEach(btn => btn.addEventListener("click", () => {
-    if (answered) return;
-    picked = +btn.dataset.i; answered = true;
+    const picked = +btn.dataset.i;
+    // 记录本题作答（供返回上一题恢复）
+    r.picks = r.picks || {};
+    r.picks[q.id] = picked;
     const ok = picked === quiz.answer;
     r.total++;
     if (ok) { r.correct++; state.progress.xp += 15; } else r.mistakeIds.push(q.id);
@@ -362,7 +391,7 @@ function fallbackQuiz(q) {
   return null;
 }
 
-function showJudge(ok, explain, q) {
+function showJudge(ok, explain, q, opts = {}) {
   const old = $("#judge"); if (old) old.remove();
   const j = document.createElement("div");
   j.className = "judge " + (ok ? "good" : "bad"); j.id = "judge";
@@ -372,10 +401,11 @@ function showJudge(ok, explain, q) {
       <div class="j-title">${ok ? "回答正确！" : "再想想～"}</div>
       <div class="j-exp">${esc(explain).slice(0, 220)}</div>
     </div>
-    <button class="btn ${ok ? "btn-primary" : "btn-blue"}" id="j-next">继续</button>`;
+    <button class="btn ${ok ? "btn-primary" : "btn-blue"}" id="j-next">${opts.restore ? "返回本题" : "继续"}</button>`;
   document.body.appendChild(j);
   $("#j-next", j).addEventListener("click", () => {
     j.remove();
+    if (opts.restore) { renderLessonStep($("#view")); return; } // 恢复态：仅重绘（上一题操作已改 seq）
     const r = state.route;
     if (!ok) { showAnswerDetail(q); } else { r.seq++; renderLessonStep($("#view")); }
   });
@@ -416,6 +446,10 @@ async function askAI(q, force = false) {
   const zone = $("#ai-zone"); const content = $("#ai-content");
   if (!zone || !content) return;
   if (!llmReady()) { toast("未配置大模型 API，请到设置页填写"); showSettingsFromAnywhere(); return; }
+
+  // 互斥：展开 AI 解读时收起参考答案
+  const reveal = $("#ans-reveal");
+  if (reveal) reveal.open = false;
 
   // 缓存命中：直接渲染（force=true 时走重新生成）
   if (!force) {
@@ -865,7 +899,6 @@ async function boot() {
   render();
   // 底部导航
   $$("#bottombar .tab").forEach(b => b.addEventListener("click", () => { state.route = null; setView(b.dataset.tab); }));
-  $("#btn-settings").addEventListener("click", () => setView("settings"));
-  $("#btn-back").addEventListener("click", () => setView("path"));
+  $("#btn-back").addEventListener("click", () => { state.route = null; setView("path"); });
 }
 boot();
