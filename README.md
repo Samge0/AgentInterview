@@ -8,17 +8,17 @@
 |:---:|:---:|:---:|
 | ![学习路径](data/screenshots/01-path.png) | ![章节弹层](data/screenshots/02-chapter-pop.png) | ![学习卡片](data/screenshots/03-learn.png) |
 
-| 参考答案 | 章节测验 | 判题反馈 |
+| 参考答案 | AI 解读 | 章节测验 |
 |:---:|:---:|:---:|
-| ![参考答案](data/screenshots/04-learn-answer.png) | ![章节测验](data/screenshots/05-quiz.png) | ![判题反馈](data/screenshots/06-quiz-judge.png) |
+| ![参考答案](data/screenshots/04-learn-answer.png) | ![AI 解读](data/screenshots/11-ai-explain.png) | ![章节测验](data/screenshots/05-quiz.png) |
 
-| 错题本 | 错题详情 | 统计 |
+| 判题反馈 | 错题本 | 错题详情 |
 |:---:|:---:|:---:|
-| ![错题本](data/screenshots/07-mistakes.png) | ![错题详情](data/screenshots/08-mistake-detail.png) | ![统计](data/screenshots/09-stats.png) |
+| ![判题反馈](data/screenshots/06-quiz-judge.png) | ![错题本](data/screenshots/07-mistakes.png) | ![错题详情](data/screenshots/08-mistake-detail.png) |
 
-| 设置 |
-|:---:|
-| ![设置](data/screenshots/10-settings.png) |
+| 统计 | 设置 | 暗色模式 |
+|:---:|:---:|:---:|
+| ![统计](data/screenshots/09-stats.png) | ![设置](data/screenshots/10-settings.png) | ![暗色模式](data/screenshots/12-dark.png) |
 
 ## 快速开始
 
