@@ -23,12 +23,13 @@
 ## 快速开始
 
 ```bash
-cd F:/Space/PRO/other/AgentInterview
+git clone https://github.com/Samge0/AgentInterview.git
+cd AgentInterview
 python -m http.server 8377        # 或任意静态服务器
 # 浏览器打开 http://127.0.0.1:8377
 ```
 
-> 直接双击 index.html（file:// 协议）无法加载 JSON 题库，请务必通过 HTTP 服务访问。
+> 或者：直接双击 index.html（file:// 协议）无法加载 JSON 题库，请务必通过 HTTP 服务访问。
 
 ## 功能
 
