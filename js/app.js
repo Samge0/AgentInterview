@@ -26,6 +26,7 @@ function defaultProgress() {
     lastDay: "",
     days: {},                 // "2026-09-02": true
     chapters: {},             // chapterId: { learned: [qid...], quizDone: bool, bestAccuracy: 0 }
+    mistakes: {},             // qid -> { chapter, title, wrongCount, lastWrongAt, lastPick }
     settings: {
       baseURL: "", model: "", apiKey: "",
       unlockAll: false,       // 解锁全部章节
@@ -43,6 +44,7 @@ function loadProgress() {
       const d = defaultProgress();
       state.progress = Object.assign(d, p);
       state.progress.settings = Object.assign(d.settings, p.settings || {});
+      if (!state.progress.mistakes || typeof state.progress.mistakes !== "object") state.progress.mistakes = {};
       return;
     }
   } catch (e) { console.warn("progress load fail", e); }
@@ -64,6 +66,32 @@ function chProg(id) {
   const p = state.progress;
   if (!p.chapters[id]) p.chapters[id] = { learned: [], quizDone: false, bestAccuracy: 0 };
   return p.chapters[id];
+}
+
+/* ---------- 错题本 ---------- */
+function recordMistake(q, picked) {
+  const m = state.progress.mistakes;
+  const cur = m[q.id] || { chapter: state.route.chapter, title: q.title, wrongCount: 0, lastWrongAt: 0, lastPick: -1 };
+  cur.wrongCount += 1;
+  cur.lastWrongAt = Date.now();
+  cur.lastPick = picked;
+  cur.chapter = cur.chapter || state.route.chapter;
+  cur.title = q.title; // 题目可能被改过，保持最新
+  m[q.id] = cur;
+  saveProgress();
+  updateMistakeBadge();
+}
+function removeMistake(qid) {
+  delete state.progress.mistakes[qid];
+  saveProgress();
+  updateMistakeBadge();
+}
+function updateMistakeBadge() {
+  const b = $("#mistake-badge");
+  if (!b) return;
+  const n = Object.keys(state.progress.mistakes || {}).length;
+  b.textContent = n > 99 ? "99+" : String(n);
+  b.hidden = n === 0;
 }
 
 /* ================= 数据加载 ================= */
@@ -120,17 +148,20 @@ function setView(name) {
 }
 function render() {
   const view = $("#view");
-  $("#bottombar").hidden = !["path", "stats", "settings"].includes(state.view);
+  const TAB_VIEWS = ["path", "stats", "settings", "mistakes"];
+  $("#bottombar").hidden = !TAB_VIEWS.includes(state.view);
   $("#btn-back").hidden = state.view !== "lesson"; // 仅答题/学习页显示
   $("#progress-wrap").hidden = !(["lesson", "result"].includes(state.view) && state.route && state.route.list);
   document.body.classList.toggle("dark", state.progress.settings.theme === "dark");
-  const tab = { path: "path", stats: "stats", settings: "settings" }[state.view];
+  const tab = { path: "path", stats: "stats", settings: "settings", mistakes: "mistakes" }[state.view];
   $$("#bottombar .tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   $("#streak-n").textContent = state.progress.streak;
   $("#xp-n").textContent = state.progress.xp;
+  updateMistakeBadge();
   if (state.view === "path") renderPath(view);
   else if (state.view === "stats") renderStats(view);
   else if (state.view === "settings") renderSettings(view);
+  else if (state.view === "mistakes") renderMistakes(view);
   else if (state.view === "lesson") {
     if (state.route && state.route.list) renderLessonStep(view); // 会话进行中：直接渲染当前步，不重建列表
     else renderLesson(view);
@@ -385,7 +416,13 @@ function renderQuizStep(el, q) {
     r.picks[q.id] = picked;
     const ok = picked === quiz.answer;
     r.answeredCount = (r.answeredCount || 0) + 1; // 已答题数（统计用，与进度条总数 r.total 分离）
-    if (ok) { r.correct++; state.progress.xp += 15; } else r.mistakeIds.push(q.id);
+    if (ok) {
+      r.correct++; state.progress.xp += 15;
+      if (state.progress.mistakes[q.id]) removeMistake(q.id); // 答对自动移出错题本
+    } else {
+      r.mistakeIds.push(q.id);
+      recordMistake(q, picked); // 答错自动入错题本
+    }
     touchStreak(); saveProgress();
     $$(".option", el).forEach(b => {
       const i = +b.dataset.i; b.disabled = true;
@@ -574,13 +611,15 @@ function showSettingsFromAnywhere() { setView("settings"); }
 function finishLesson() {
   const r = state.route;
   if (r.mode === "quiz") {
-    const cp = chProg(r.chapter);
     const answered = r.answeredCount || 0;
     const acc = answered ? Math.round(r.correct / answered * 100) : 0;
-    if (acc > (cp.bestAccuracy || 0)) cp.bestAccuracy = acc;
-    cp.quizDone = answered > 0 && acc >= 60;
+    if (!r.isMistakeRedo) { // 错题重做会话不写入章节测验成绩
+      const cp = chProg(r.chapter);
+      if (acc > (cp.bestAccuracy || 0)) cp.bestAccuracy = acc;
+      cp.quizDone = answered > 0 && acc >= 60;
+    }
     saveProgress();
-    r.result = { acc, correct: r.correct, total: answered, time: Math.round((Date.now() - r.t0) / 1000) };
+    r.result = { acc, correct: r.correct, total: answered, time: Math.round((Date.now() - r.t0) / 1000), isMistakeRedo: !!r.isMistakeRedo };
   } else {
     r.result = null;
   }
@@ -605,28 +644,146 @@ function renderResult(el) {
     return;
   }
   const good = r.result.acc >= 60;
+  const isRedo = r.result.isMistakeRedo;
+  const remaining = Object.keys(state.progress.mistakes || {}).length;
   el.innerHTML = `
     <div class="result-wrap">
       <div class="r-emoji">${good ? "🏆" : "💪"}</div>
-      <h2>${good ? "测验通过！" : "继续加油！"}</h2>
-      <div class="r-sub">${meta.icon} ${esc(meta.title)}</div>
+      <h2>${isRedo ? (good ? "错题重做完成！" : "继续攻克错题！") : (good ? "测验通过！" : "继续加油！")}</h2>
+      <div class="r-sub">${isRedo ? "📕 错题重做" : `${meta.icon} ${esc(meta.title)}`}</div>
       <div class="result-stats">
         <div class="result-stat"><b class="r-accuracy">${r.result.acc}%</b><span>正确率</span></div>
         <div class="result-stat"><b class="r-xp">${r.result.correct}/${r.result.total}</b><span>答对题数</span></div>
         <div class="result-stat"><b class="r-time">${fmtTime(r.result.time)}</b><span>用时</span></div>
       </div>
-      ${r.mistakeIds.length ? `<div class="r-sub" style="margin-bottom:14px">错题 ${r.mistakeIds.length} 个，建议回头复习</div>` : ""}
+      ${isRedo ? `<div class="r-sub" style="margin-bottom:14px">${remaining ? `还剩 ${remaining} 道错题待攻克` : "🎉 错题本已清空！"}</div>` : (r.mistakeIds.length ? `<div class="r-sub" style="margin-bottom:14px">错题 ${r.mistakeIds.length} 个已收入错题本</div>` : "")}
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-ghost" id="r-retry">再测一次</button>
-        <button class="btn btn-primary" id="r-back">返回路径</button>
+        ${isRedo
+          ? (remaining ? '<button class="btn btn-primary" id="r-redo-more">继续重做剩余错题</button>' : "")
+          : '<button class="btn btn-ghost" id="r-retry">再测一次</button>'}
+        <button class="btn ${isRedo ? "btn-ghost" : "btn-primary"}" id="r-back">${isRedo ? "返回错题本" : "返回路径"}</button>
       </div>
     </div>`;
-  $("#r-retry").addEventListener("click", () => startLesson(r.chapter, "quiz"));
-  $("#r-back").addEventListener("click", () => { state.route = null; setView("path"); });
+  const more = $("#r-redo-more");
+  if (more) more.addEventListener("click", () => {
+    const qids = Object.keys(state.progress.mistakes);
+    if (qids.length) startMistakeRedo(qids);
+  });
+  if (!isRedo) $("#r-retry").addEventListener("click", () => startLesson(r.chapter, "quiz"));
+  $("#r-back").addEventListener("click", () => { state.route = null; setView(isRedo ? "mistakes" : "path"); });
 }
 const fmtTime = (s) => s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60}s`;
 
-/* ================= 统计视图 ================= */
+/* ================= 错题本视图 ================= */
+async function renderMistakes(el) {
+  const mk = state.progress.mistakes || {};
+  const entries = Object.entries(mk).sort((a, b) => (b[1].lastWrongAt || 0) - (a[1].lastWrongAt || 0));
+  if (!entries.length) {
+    el.innerHTML = `
+      <div class="mistake-wrap">
+        <div class="mk-empty">
+          <div class="e-icon">🎉</div>
+          <p>错题本是空的</p>
+          <div class="e-sub">章节测验中答错的题会自动收进这里，答对后自动移出</div>
+        </div>
+      </div>`;
+    return;
+  }
+  // 加载涉及的章节（拿 quiz / 答案原文）
+  const needChapters = [...new Set(entries.map(([, v]) => v.chapter).filter(Boolean))];
+  await Promise.allSettled(needChapters.map(cid => loadChapter(cid)));
+
+  el.innerHTML = `
+    <div class="mistake-wrap">
+      <div class="mistake-head">
+        <h2>📕 错题本 <span class="m-count">${entries.length} 题</span></h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" id="mk-redo-all">🔄 重做错题</button>
+          <button class="btn btn-ghost btn-sm" id="mk-clear">🧹 清空</button>
+        </div>
+      </div>
+      <div id="mk-list"></div>
+    </div>`;
+  const list = $("#mk-list", el);
+  for (const [qid, info] of entries) {
+    const q = findQuestionById(qid);
+    const chap = state.chapters.find(c => c.id === (info.chapter || (q && q.id && q.id.split("-").slice(0, -1).join("-"))));
+    const when = info.lastWrongAt ? new Date(info.lastWrongAt).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    const card = document.createElement("div");
+    card.className = "mk-card";
+    card.innerHTML = `
+      ${chap ? `<div class="mk-chap">${chap.icon} ${esc(chap.title)}</div>` : ""}
+      <div class="mk-title">${esc(info.title || (q ? q.title : qid))}</div>
+      <div class="mk-meta">
+        <span class="mk-wrong">✗ 答错 ${info.wrongCount || 1} 次</span>
+        ${when ? `<span>🕐 ${when}</span>` : ""}
+      </div>
+      <div class="mk-expand" hidden><div class="md"></div>
+        <div class="mk-actions">
+          <button class="btn btn-blue btn-sm" data-act="redo">🔄 重做此题</button>
+          <button class="btn btn-ghost btn-sm" data-act="remove">✅ 我已掌握，移除</button>
+        </div>
+      </div>`;
+    const titleEl = $(".mk-title", card);
+    titleEl.addEventListener("click", () => {
+      const ex = $(".mk-expand", card);
+      ex.hidden = !ex.hidden;
+      if (!ex.hidden) {
+        const md = $(".md", ex);
+        if (!md.dataset.filled) {
+          md.innerHTML = q ? mdRender(q.answer_md) : "题目已不存在（可能题库文件被修改）";
+          md.dataset.filled = "1";
+        }
+      }
+    });
+    $("[data-act='redo']", card).addEventListener("click", () => {
+      if (!q) { toast("题目已不存在"); return; }
+      if (!q.quiz) { toast("该题暂无选择题，请在章节中学习复习"); return; }
+      startMistakeRedo([qid]);
+    });
+    $("[data-act='remove']", card).addEventListener("click", () => {
+      removeMistake(qid);
+      card.remove();
+      const n = Object.keys(state.progress.mistakes).length;
+      $(".m-count", el).textContent = `${n} 题`;
+      if (!n) renderMistakes(el);
+      toast("已移出错题本");
+    });
+    list.appendChild(card);
+  }
+  $("#mk-redo-all", el).addEventListener("click", () => {
+    const redoable = entries.filter(([qid]) => { const q = findQuestionById(qid); return q && q.quiz; }).map(([qid]) => qid);
+    if (!redoable.length) { toast("没有可重做的选择题"); return; }
+    startMistakeRedo(redoable);
+  });
+  $("#mk-clear", el).addEventListener("click", () => {
+    if (confirm(`确定清空全部 ${entries.length} 道错题？`)) {
+      state.progress.mistakes = {}; saveProgress(); updateMistakeBadge(); renderMistakes(el); toast("已清空");
+    }
+  });
+}
+
+function findQuestionById(qid) {
+  for (const cid in state.cache) {
+    const hit = state.cache[cid].find(q => q.id === qid);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/* 错题重做会话：与章节测验同 UI，但 list 来源于错题 */
+function startMistakeRedo(qids) {
+  const qs = qids.map(findQuestionById).filter(q => q && q.quiz);
+  if (!qs.length) { toast("没有可重做的选择题"); return; }
+  const mk = state.progress.mistakes || {};
+  const chapter = (mk[qids[0]] && mk[qids[0]].chapter) || qs[0].id.split("-").slice(0, -1).join("-");
+  state.route = {
+    chapter, mode: "quiz", isMistakeRedo: true, redoIds: qids.slice(),
+    seq: 0, correct: 0, total: qs.length, answeredCount: 0,
+    t0: Date.now(), mistakeIds: [], list: shuffle(qs),
+  };
+  setView("lesson"); // route.list 已就绪，render 直接进 renderLessonStep
+}
 function renderStats(el) {
   const totalQ = state.chapters.reduce((s, c) => s + c.count, 0);
   const learnedQ = Object.values(state.progress.chapters).reduce((s, c) => s + c.learned.length, 0);
@@ -648,6 +805,7 @@ function renderStats(el) {
           <div class="stat-box"><span class="sb-icon">⚡</span><b>${state.progress.xp}</b><span>经验</span></div>
           <div class="stat-box"><span class="sb-icon">🔥</span><b>${state.progress.streak}</b><span>连续天数</span></div>
           <div class="stat-box"><span class="sb-icon">🏆</span><b>${quizDone}</b><span>测验通过</span></div>
+          <div class="stat-box" style="cursor:pointer" id="stat-mistakes"><span class="sb-icon">📕</span><b>${Object.keys(state.progress.mistakes || {}).length}</b><span>待攻克错题</span></div>
         </div>
       </div>
       <div class="set-card">
@@ -665,6 +823,8 @@ function renderStats(el) {
         </div>
       </div>
     </div>`;
+  const sm = $("#stat-mistakes", el);
+  if (sm) sm.addEventListener("click", () => setView("mistakes"));
 }
 
 /* ================= 设置视图 ================= */
@@ -798,9 +958,16 @@ function renderSettings(el) {
       const c = merged.chapters[id];
       merged.chapters[id] = { learned: Array.isArray(c.learned) ? c.learned : [], quizDone: !!c.quizDone, bestAccuracy: +c.bestAccuracy || 0 };
     }
+    // 校正错题本结构
+    if (!merged.mistakes || typeof merged.mistakes !== "object") merged.mistakes = {};
+    for (const qid in merged.mistakes) {
+      const m = merged.mistakes[qid];
+      if (!m || typeof m !== "object") { delete merged.mistakes[qid]; continue; }
+      merged.mistakes[qid] = { chapter: m.chapter || "", title: m.title || qid, wrongCount: +m.wrongCount || 1, lastWrongAt: +m.lastWrongAt || 0, lastPick: +m.lastPick || -1 };
+    }
     state.progress = merged;
     saveProgress(); render();
-    return `已导入进度（XP ${merged.xp}，${Object.keys(merged.chapters).length} 章有记录）`;
+    return `已导入进度（XP ${merged.xp}，${Object.keys(merged.chapters).length} 章有记录，${Object.keys(merged.mistakes).length} 道错题）`;
   }));
   $("#c-export").addEventListener("click", () => {
     const cfg = { type: "settings", exportedAt: new Date().toISOString(), settings: state.progress.settings };
