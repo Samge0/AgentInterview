@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Agent 面试通关 · AI 应用开发</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<script src="lib/marked.min.js"></script>
+<script src="lib/dompurify.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <!-- 顶栏 -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <button class="nav-btn" id="btn-back" title="返回" hidden>←</button>
+      <div class="logo" id="logo">🤖 Agent 面试通关</div>
+      <div class="stats">
+        <span class="stat-chip" id="stat-streak" title="连续学习天数">🔥 <b id="streak-n">0</b></span>
+        <span class="stat-chip" id="stat-xp" title="经验值">⚡ <b id="xp-n">0</b></span>
+        <button class="stat-chip btn-plain" id="btn-settings" title="设置">⚙️</button>
+      </div>
+    </div>
+    <div class="progress-wrap" id="progress-wrap" hidden>
+      <div class="progress-track"><div class="progress-fill" id="lesson-progress"></div></div>
+      <span class="progress-num" id="lesson-progress-num">0/0</span>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <footer class="bottombar" id="bottombar" hidden>
+    <button class="tab active" data-tab="path">🗺️<span>路径</span></button>
+    <button class="tab" data-tab="stats">📊<span>统计</span></button>
+    <button class="tab" data-tab="settings">⚙️<span>设置</span></button>
+  </footer>
+</div>
+<div id="toast-root"></div>
+<div id="modal-root"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

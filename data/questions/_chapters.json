@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "chapters": [
+    {
+      "id": "agent-基础概念",
+      "file": "agent-基础概念.json",
+      "title": "Agent 基础概念",
+      "icon": "🤖",
+      "color": "#58cc02",
+      "desc": "Agent 是什么、与 LLM 的区别、架构与工作模式",
+      "count": 11
+    },
+    {
+      "id": "workflow-vs-agent",
+      "file": "workflow-vs-agent.json",
+      "title": "Workflow vs Agent",
+      "icon": "🔀",
+      "color": "#1cb0f6",
+      "desc": "",
+      "count": 5
+    },
+    {
+      "id": "上下文管理与记忆",
+      "file": "上下文管理与记忆.json",
+      "title": "上下文管理与记忆",
+      "icon": "🧠",
+      "color": "#ce82ff",
+      "desc": "",
+      "count": 21
+    },
+    {
+      "id": "tool-calling-function-call-mcp",
+      "file": "tool-calling-function-call-mcp.json",
+      "title": "Tool Calling / Function Call / MCP",
+      "icon": "🛠️",
+      "color": "#ff9600",
+      "desc": "",
+      "count": 13
+    },
+    {
+      "id": "multi-agent",
+      "file": "multi-agent.json",
+      "title": "Multi-Agent",
+      "icon": "👥",
+      "color": "#ff4b4b",
+      "desc": "",
+      "count": 8
+    },
+    {
+      "id": "react-反思-任务规划",
+      "file": "react-反思-任务规划.json",
+      "title": "ReAct / 反思 / 任务规划",
+      "icon": "♻️",
+      "color": "#2b70c9",
+      "desc": "",
+      "count": 7
+    },
+    {
+      "id": "异常处理-安全-熔断",
+      "file": "异常处理-安全-熔断.json",
+      "title": "异常处理 / 安全 / 熔断",
+      "icon": "🛡️",
+      "color": "#ff86d0",
+      "desc": "",
+      "count": 11
+    },
+    {
+      "id": "幻觉与评测",
+      "file": "幻觉与评测.json",
+      "title": "幻觉与评测",
+      "icon": "📊",
+      "color": "#00cd9c",
+      "desc": "",
+      "count": 12
+    },
+    {
+      "id": "prompt-工程",
+      "file": "prompt-工程.json",
+      "title": "Prompt 工程",
+      "icon": "✍️",
+      "color": "#a5601c",
+      "desc": "",
+      "count": 4
+    },
+    {
+      "id": "模型相关",
+      "file": "模型相关.json",
+      "title": "模型相关",
+      "icon": "🗄️",
+      "color": "#9aa0a6",
+      "desc": "",
+      "count": 8
+    },
+    {
+      "id": "工程化与部署",
+      "file": "工程化与部署.json",
+      "title": "工程化与部署",
+      "icon": "🚀",
+      "color": "#58cc02",
+      "desc": "",
+      "count": 9
+    },
+    {
+      "id": "agent-场景设计题",
+      "file": "agent-场景设计题.json",
+      "title": "Agent 场景设计题",
+      "icon": "🏗️",
+      "color": "#1cb0f6",
+      "desc": "",
+      "count": 11
+    },
+    {
+      "id": "网络基础",
+      "file": "网络基础.json",
+      "title": "网络基础",
+      "icon": "🌐",
+      "color": "#ce82ff",
+      "desc": "HTTP/HTTPS/WebSocket/SSE 等网络八股",
+      "count": 16
+    },
+    {
+      "id": "python-基础",
+      "file": "python-基础.json",
+      "title": "Python 基础",
+      "icon": "🐍",
+      "color": "#ff9600",
+      "desc": "GIL/协程/装饰器等 Python 八股",
+      "count": 12
+    }
+  ]
+}

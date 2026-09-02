@@ -1,0 +1,48 @@
+{
+  "chapter": "react-反思-任务规划",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "react-反思-任务规划-1",
+      "title": "你设计的 Agent 是怎么实现 ReAct 模式的？",
+      "answer_md": "**实现架构**：\n\n```Python\nclass ReActAgent:\n    def __init__(self, llm, tools, max_iterations=10):\n        self.llm = llm\n        self.tools = {t.name: t for t in tools}\n        self.max_iterations = max_iterations\n    \n    def run(self, query):\n        messages = [{\"role\": \"system\", \"content\": self.system_prompt}]\n        messages.append({\"role\": \"user\", \"content\": query})\n        \n        for i in range(self.max_iterations):\n            # 1. Think - LLM 推理\n            response = self.llm.call(messages, tools=list(self.tools.values()))\n            \n            # 2. 检查是否为最终回答\n            if not response.tool_calls:\n                return response.content  # 最终答案\n            \n            # 3. Act - 执行工具\n            messages.append(response.message)  # 记录 assistant 的 tool_call\n            \n            for tool_call in response.tool_calls:\n                try:\n                    result = self.tools[tool_call.name].execute(tool_call.args)\n                except Exception as e:\n                    result = f\"工具执行失败: {str(e)}\"\n                \n                # 4. Observe - 注入观察结果\n                messages.append({\n                    \"role\": \"tool\",\n                    \"tool_call_id\": tool_call.id,\n                    \"content\": str(result)\n                })\n        \n        return \"达到最大迭代次数，以下是目前收集的信息：...\" + self._summarize(messages)\n```\n\n**关键设计决策**：\n\n- **System Prompt 中的 ReAct 指令**：明确要求模型先思考（Thought），再决定行动（Action），观察结果后再思考\n\n- **工具描述质量**：每个工具的 description 是 Agent 准确选择的关键\n\n- **错误恢复**：工具失败时不终止，而是将错误信息返回给模型，让模型自行决定换工具或换策略\n\n- **循环退出**：除最大迭代次数外，还可以检测连续相同工具调用（死循环检测）\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-2",
+      "title": "什么是 Agent 的反思机制？",
+      "answer_md": "**反思机制（Reflection）** 是让 Agent 在生成输出后进行自我审视和改进的能力。\n\n**实现方式**：\n\n```Python\n# 两阶段反思\ndef generate_with_reflection(query, context):\n    # 阶段一：生成初始回答\n    initial_response = llm.call(f\"请回答：{query}\", context=context)\n    \n    # 阶段二：反思审查\n    reflection = llm.call(f\"\"\"\n    请审查以下回答的质量：\n    \n    用户问题：{query}\n    初始回答：{initial_response}\n    \n    检查维度：\n    1. 事实准确性：回答中是否有明显错误？\n    2. 完整性：是否遗漏了重要信息？\n    3. 语气适当性：语气是否专业、温和、得体？\n    4. 逻辑一致性：回答是否自相矛盾？\n    \n    如果发现问题，请输出改进后的版本。\n    如果没有问题，输出\"APPROVED\"。\n    \"\"\")\n    \n    if \"APPROVED\" in reflection:\n        return initial_response\n    else:\n        return reflection  # 改进后的版本\n```\n\n**心理咨询 Agent 中的语气检查**：\n\n```Python\nTONE_CHECK_PROMPT = \"\"\"\n你是心理咨询质控专家。请审查以下回复是否符合专业标准：\n\n回复内容：{response}\n\n检查要点：\n1. 是否使用了共情性语言（如\"我理解你的感受\"）？\n2. 是否避免了评判性词汇（如\"你不应该\"、\"你错了\"）？\n3. 是否保持了温暖但专业的距离？\n4. 是否避免了给出简单化的建议（如\"想开点\"）？\n5. 是否注意到了潜在的危险信号需要进一步追问？\n\n输出：{\"passed\": true/false, \"issues\": [...], \"revised_response\": \"...\"}\n\"\"\"\n```\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-3",
+      "title": "为什么要用 Planning & Solve 架构？还了解什么架构？ReAct 和 Reflection 架构有什么差别？",
+      "answer_md": "**为什么用 Plan-and-Solve**：\n\n当任务复杂度高、涉及多个步骤且步骤间有依赖关系时，Plan-and-Solve 优于 ReAct。原因是：ReAct 是\"走一步看一步\"，可能在执行过程中偏离最优路径；Plan-and-Solve 先制定全局计划，确保整体方向正确。\n\n**三大架构对比**：\n\n**其他重要架构**：\n\n- **LATS（Language Agent Tree Search）**：树搜索 + ReAct，探索多条推理路径\n\n- **Self-Discover**：LLM 自动选择和组合推理策略\n\n- **AdaPlanner**：自适应规划，执行中动态调整计划\n\n- **Voyager**：终身学习 Agent，积累可复用技能\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-4",
+      "title": "关于 ReAct 的知识，那几个模式有什么差别？",
+      "answer_md": "**ReAct 及其变体模式对比**：\n\n**① 标准 ReAct**：Thought → Action → Observation，线性循环\n\n- 适合：大多数需要工具的任务\n\n- 弱点：可能在错误方向上持续推进\n\n**② ReAct + Reflection**：在 ReAct 循环中加入反思步骤\n\n- Thought → Action → Observation → Reflection → 继续或修正\n\n- 适合：需要高准确度的场景\n\n**③ ReAct + Planning**：先生成计划，再在每步中用 ReAct 执行\n\n- Plan → (Thought → Action → Observation) × N → 检查计划进度\n\n- 适合：复杂的多步骤任务\n\n**④ ReWOO（Reasoning Without Observation）**：先生成所有推理和工具调用计划，一次性批量执行所有工具，最后统一推理\n\n- 减少了 LLM 调用次数（从 N 次减到 2 次）\n\n- 适合：工具调用之间没有依赖关系的场景\n\n**⑤ Multi-Agent ReAct**：多个 ReAct Agent 并行工作，各自有独立的循环\n\n- 适合：可并行化的子任务\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-5",
+      "title": "任务分解后，会根据任务执行结果调整任务列表吗？",
+      "answer_md": "**是的，好的 Agent 必须支持动态调整计划。** 这是 AdaPlanner（自适应规划）的核心思想。\n\n```Python\nclass AdaptivePlanner:\n    def execute_plan(self, task):\n        plan = self.create_plan(task)  # 初始计划\n        \n        for i, step in enumerate(plan.steps):\n            result = self.execute_step(step)\n            \n            # 检查执行结果是否符合预期\n            evaluation = self.evaluate_step_result(step, result)\n            \n            if evaluation.status == \"success\":\n                plan.update_context(step, result)  # 更新后续步骤的上下文\n                \n            elif evaluation.status == \"partial_success\":\n                # 调整后续步骤以适应部分结果\n                remaining_steps = plan.steps[i+1:]\n                plan.steps[i+1:] = self.revise_plan(remaining_steps, result)\n                \n            elif evaluation.status == \"failure\":\n                # 重大调整：可能需要重新规划\n                if evaluation.is_recoverable:\n                    plan.insert_recovery_step(i+1, evaluation.recovery_action)\n                else:\n                    plan = self.replan(task, completed=plan.steps[:i], failure=result)\n```\n\n**调整时机**：\n\n- 某个步骤执行失败 → 插入恢复步骤或跳过\n\n- 步骤返回意外结果（如搜索无结果）→ 调整后续查询策略\n\n- 发现新信息改变了问题本质 → 全局重新规划\n\n- 中间步骤发现任务已经可以提前完成 → 跳过剩余步骤\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-6",
+      "title": "复杂任务怎么去拆解任务，以及如何更好地调用工具？",
+      "answer_md": "**任务拆解方法论**：\n\n```Python\nDECOMPOSITION_PROMPT = \"\"\"\n将以下复杂任务拆解为可执行的子任务：\n\n任务：{task}\n\n要求：\n1. 每个子任务应该是原子操作（单一、明确、可验证）\n2. 标注子任务之间的依赖关系（哪些可以并行，哪些必须串行）\n3. 为每个子任务推荐最合适的工具\n4. 估计每个子任务的难度（low/medium/high）\n\n输出格式：\n{\n  \"subtasks\": [\n    {\"id\": 1, \"description\": \"...\", \"depends_on\": [], \"tools\": [\"...\"], \"difficulty\": \"low\"},\n    {\"id\": 2, \"description\": \"...\", \"depends_on\": [1], \"tools\": [\"...\"], \"difficulty\": \"medium\"}\n  ],\n  \"execution_order\": [[1,3], [2,4], [5]]  // 第一组并行，第二组并行，第三组串行\n}\n\"\"\"\n```\n\n**更好地调用工具的策略**：\n\n1. **工具选择精准化**：为每个子任务匹配最合适的工具，而非让模型自由选择\n\n2. **参数预填充**：利用上下文信息预填充工具参数\n\n3. **结果验证**：每次工具调用后验证结果是否合理\n\n4. **Fallback 链**：主工具失败时自动切换到备选工具\n\n5. **批量调用**：独立的工具调用并行执行\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "react-反思-任务规划-7",
+      "title": "举例复杂任务下执行流程",
+      "answer_md": "**任务：\"帮我分析特斯拉过去一年的股价走势，与竞争对手对比，并生成投资建议报告\"**\n\n```Plain Text\n[Planning Phase]\n├── 子任务 1：获取特斯拉(TSLA)过去一年的股价数据\n├── 子任务 2：获取竞争对手(BYD, Rivian, Lucid)的股价数据\n├── 子任务 3：收集特斯拉近期新闻和财报数据\n├── 子任务 4：数据分析（收益率、波动率、相关性）\n├── 子任务 5：竞对对比分析\n├── 子任务 6：生成可视化图表\n└── 子任务 7：撰写投资建议报告\n\n[Execution Phase]\nStep 1-3（并行）：\n  Agent 调用 stock_api.get_historical_prices(\"TSLA\", period=\"1Y\")\n  Agent 调用 stock_api.get_historical_prices(\"BYD\", period=\"1Y\")  // 并行\n  Agent 调用 news_search(\"Tesla earnings 2025\")                   // 并行\n\nStep 4（串行，依赖 1-2 结果）：\n  Agent 调用 code_interpreter(\"\"\"\n    import pandas as pd\n    tsla_returns = calculate_returns(tsla_data)\n    volatility = calculate_volatility(tsla_data)\n    correlation = calculate_correlation(tsla_data, byd_data)\n  \"\"\")\n\nStep 5（串行，依赖 4）：\n  Agent 调用 LLM 分析对比结果，生成文字洞察\n\nStep 6（串行，依赖 4）：\n  Agent 调用 code_interpreter 生成 matplotlib 图表\n\nStep 7（串行，依赖 3-6 所有结果）：\n  Agent 汇总所有信息，调用 document_generator 生成报告\n\n[Verification Phase]\n  验证 Agent 检查报告的数据准确性和逻辑一致性\n  如有问题，反馈给相关步骤重新执行\n```\n\n---",
+      "quiz": null
+    }
+  ]
+}

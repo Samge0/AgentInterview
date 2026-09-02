@@ -1,0 +1,66 @@
+{
+  "chapter": "workflow-vs-agent",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "workflow-vs-agent-1",
+      "title": "Workflow 和 Agent 有什么区别？",
+      "answer_md": "**核心区别一句话**：Workflow 是\"你告诉系统怎么做\"，Agent 是\"你告诉系统做什么，它自己决定怎么做\"。\n\n**Anthropic 官方的划分标准**：\n\n- Workflow = Orchestration framework + Predefined paths（预定义路径）\n\n- Agent = LLM dynamically directs its own processes and tool usage（LLM 自主控制）\n\n---",
+      "quiz": {
+        "stem": "以下哪项最准确地描述了 Workflow 与 Agent 的核心区别？",
+        "options": [
+          "Workflow 依赖 LLM 自主规划步骤，Agent 依赖预定义路径执行。",
+          "Workflow 采用预定义路径和编排框架，Agent 由 LLM 动态自主控制流程。",
+          "Workflow 仅用于数据处理，Agent 仅用于自然语言交互。",
+          "Workflow 和 Agent 在实现机制上完全相同，仅命名不同。"
+        ],
+        "answer": 1,
+        "explain": "Workflow 是预定义路径的编排框架，Agent 是 LLM 自主决定流程和工具调用。"
+      }
+    },
+    {
+      "id": "workflow-vs-agent-2",
+      "title": "什么情况下适合用 Workflow，什么情况下适合用 Agent？",
+      "answer_md": "**适合 Workflow 的场景**：\n\n- 业务流程固定且明确，如\"客户投诉处理 → 分类 → 分配 → 响应\"\n\n- 对可靠性和一致性要求极高（金融、医疗合规场景）\n\n- 需要精确的成本控制和 SLA 保证\n\n- 团队对 AI 能力边界有清晰认知，可以预定义最优路径\n\n- 每个节点的输入输出格式确定\n\n- 需要严格的审计追踪\n\n**适合 Agent 的场景**：\n\n- 任务需求多样且难以穷举所有路径\n\n- 需要根据中间结果动态调整策略\n\n- 用户的请求本身就是开放式的（如\"帮我调研 XX 行业\"）\n\n- 需要探索性地使用多种工具\n\n- 对延迟和成本容忍度较高\n\n**混合模式（实际项目中最常见）**：\n\n- 顶层用 Workflow 做整体编排，保证核心流程可控\n\n- 某些节点内部使用 Agent 处理需要灵活推理的子任务\n\n- 例如：客服系统整体是 Workflow（意图识别→路由→处理→回复），但\"处理\"节点内部用 Agent 来灵活地查询知识库和生成回答\n\n---",
+      "quiz": {
+        "stem": "某企业需构建一个“金融贷款审批”系统，该流程包含：1. 用户提交资料；2. 自动校验资料完整性；3. 调用征信接口查询信用分；4. 若信用分低于600，则转人工复核；5. 若信用分高于600，则自动通过。此场景最适合采用哪种架构？",
+        "options": [
+          "纯 Agent 架构：将审批任务交给一个智能体，让其自主决定是否需要人工复核及最终审批结果。",
+          "纯 Workflow 架构：将“资料校验”、“征信查询”、“人工复核”等步骤预定义为固定节点，通过条件分支（如信用分<600）串联执行。",
+          "混合架构：顶层使用 Agent 进行意图识别，底层使用 Workflow 执行所有具体的审批动作。",
+          "纯 Workflow 架构：将所有步骤（包括人工复核）全部固化为自动化节点，由系统自动完成最后审批。"
+        ],
+        "answer": 1,
+        "explain": "金融审批对合规性、可追溯性和确定性要求极高，固定路径和明确分支的 Workflow 能确保流程可控，符合参考答案中“金融合规场景”和“严格审计”的要点。"
+      }
+    },
+    {
+      "id": "workflow-vs-agent-3",
+      "title": "如何保证 Workflow 和 Agent 的成功率？",
+      "answer_md": "**Workflow 成功率保障**：\n\n1. **节点级保障**：每个节点配备输入校验、输出校验和 fallback 逻辑\n\n2. **Prompt 工程**：对每个 LLM 调用节点做充分的 Prompt 优化和测试\n\n3. **结构化输出**：使用 JSON Schema / Pydantic 等强制输出格式\n\n4. **重试机制**：对可恢复的错误进行自动重试（指数退避）\n\n5. **监控告警**：每个节点的成功率、延迟、Token 消耗实时监控\n\n6. **A/B 测试**：通过灰度发布逐步验证新版本\n\n**Agent 成功率保障**：\n\n1. **约束 Agent 行为空间**：限制可用工具集、设置最大迭代次数、限制 Token 预算\n\n2. **Guardrails（护栏）**：输入过滤 + 输出审核，防止异常行为\n\n3. **Few-shot 示例**：在 System Prompt 中提供成功执行的范例\n\n4. **Self-Check 机制**：在关键步骤后加入验证环节\n\n5. **Human-in-the-Loop**：高风险决策前要求人工确认\n\n6. **可观测性**：详细记录每步推理和行动，便于事后分析\n\n7. **评测体系**：构建自动化评测集，对 Agent 定期回归测试\n\n8. **模型选择**：关键路径使用最强模型（如 Claude Opus / GPT-5），非关键路径使用轻量模型降本\n\n**量化指标**：任务完成率、端到端延迟 P95、平均推理步数、Token 消耗、异常率。\n\n---",
+      "quiz": {
+        "stem": "在构建高可靠性的 Workflow 与 Agent 系统时，针对“成功率保障”这一核心概念，下列哪项措施属于 Agent 特有的保障机制，而非 Workflow 的通用保障手段？",
+        "options": [
+          "A. 为每个执行节点配置输入校验与输出校验",
+          "B. 对关键路径使用最强模型（如 Claude Opus），非关键路径使用轻量模型",
+          "C. 对可恢复的错误实施指数退避的重试机制",
+          "D. 使用 JSON Schema 强制 LLM 节点输出结构化数据"
+        ],
+        "answer": 1,
+        "explain": "B 项是 Agent 特有的策略，通过动态路由不同难度的任务到不同能力的模型；而 A、C、D 均为 Workflow 节点通用的确定性保障手段。"
+      }
+    },
+    {
+      "id": "workflow-vs-agent-4",
+      "title": "智能体模式是模型的自我迭代还是工作流（Workflow）的方式？",
+      "answer_md": "这个问题的本质是在问 Agent 的驱动力来源，答案是：**两者的有机结合，但以模型的自主推理为核心特征**。\n\n**模型自我迭代的维度**：\n\n- Agent Loop 的核心驱动力是 LLM 的推理能力\n\n- 每次循环中，LLM 根据历史信息和当前状态自主决定下一步\n\n- ReAct、Reflexion 等范式本质上是模型在\"自我迭代\"中不断改进输出\n\n- 这是 Agent 区别于传统 Workflow 的根本特征\n\n**工作流的维度**：\n\n- Agent 系统的外部骨架仍然是一个工作流（Agent Loop 本身就是一种特殊的工作流）\n\n- 工具注册、权限控制、错误处理等基础设施是工程化的工作流\n\n- 多 Agent 系统的协作编排也是工作流性质的\n\n**正确理解**：Agent 不是\"纯靠模型自我迭代\"也不是\"纯 Workflow\"，而是在 Workflow 骨架内赋予了模型自主决策的能力。Workflow 提供结构和约束，模型提供智能和灵活性。成熟的 Agent 系统一定是两者的平衡。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "workflow-vs-agent-5",
+      "title": "工作流是怎么搭建的？工作流怎么评测的？工作流的项目是怎么部署的？",
+      "answer_md": "**搭建方式**：\n\n1. **代码方式（Code-first）**：\n\n    - LangGraph：将工作流建模为有向图，节点是处理函数，边是状态转移条件\n\n    - 适合复杂逻辑和需要精细控制的场景\n\n```Python\nfrom langgraph.graph import StateGraph\ngraph = StateGraph(AgentState)\ngraph.add_node(\"classifier\", classify_intent)\ngraph.add_node(\"retriever\", retrieve_docs)\ngraph.add_node(\"generator\", generate_answer)\ngraph.add_edge(\"classifier\", \"retriever\")\ngraph.add_edge(\"retriever\", \"generator\")\n```\n\n1. **低代码方式（Low-code）**：\n\n    - Dify / Coze / n8n / Flowise：拖拽式画布搭建\n\n    - 适合快速原型和非技术团队\n\n2. **配置驱动方式（Config-driven）**：\n\n    - YAML/JSON 定义工作流结构，代码实现节点逻辑\n\n    - 适合需要动态修改流程的场景\n\n**评测方法**：\n\n1. **节点级评测**：每个 LLM 节点单独构建 test set，评估准确率、格式一致性\n\n2. **端到端评测**：用真实用例跑完整流程，评估最终输出质量\n\n3. **指标体系**： \n\n    - 功能指标：任务完成率、输出质量（人工/自动评分）\n\n    - 性能指标：延迟 P50/P95/P99、吞吐量\n\n    - 成本指标：平均 Token 消耗 / 每次调用成本\n\n    - 稳定性指标：成功率、重试率、异常率\n\n4. **回归测试**：每次 Prompt 或流程变更后执行自动化回归\n\n**部署架构**：\n\n- **中小规模**：单体应用 + FastAPI 足够，部署在 Docker 容器中\n\n- **大规模生产**：微服务架构 \n\n    - 拆分原则：每个 Agent / 核心工作流节点作为独立微服务\n\n    - API Gateway → Agent Orchestrator → 各节点微服务（Classifier Service / Retriever Service / Generator Service）\n\n    - 消息队列（Kafka/RabbitMQ）处理异步任务\n\n    - Redis 做会话状态管理\n\n    - 向量数据库集群做知识检索\n\n    - Kubernetes 做容器编排和自动伸缩\n\n- **推荐实践**：从单体开始，当某个节点成为瓶颈时再拆分为微服务（避免过早微服务化带来的运维复杂度）\n\n\n\n# AI应用开发面试题 - 来自面经的高频题汇总\n\n> 简介： 内容收集自互联网的佬们分享的个人面经～内容持续更新汇总\n> \n> \n\n内容已经分类，按照类别持续更新中。包括了Agent，RAG，网络基础，编程语言基础，中间件基础，后端基础面试题等..\n\n![云梯模型_26_2.png](Images_attachments/云梯模型_26_2.png)",
+      "quiz": null
+    }
+  ]
+}

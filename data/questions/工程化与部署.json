@@ -1,0 +1,60 @@
+{
+  "chapter": "工程化与部署",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "工程化与部署-1",
+      "title": "会用 Docker 吗？都有哪些命令？Compose 是构建镜像还是创建容器？镜像和容器有什么区别？",
+      "answer_md": "**镜像 vs 容器**：\n\n- **镜像（Image）**：只读的应用模板，包含代码、依赖、配置。类比：类（Class）\n\n- **容器（Container）**：镜像的运行实例，有独立的文件系统和网络。类比：对象（Object）\n\n- 一个镜像可以创建多个容器，容器是镜像的可写实例\n\n**常用命令**：\n\n```Bash\n# 镜像相关\ndocker build -t myapp:v1 .          # 从 Dockerfile 构建镜像\ndocker pull python:3.11              # 拉取镜像\ndocker images                        # 列出本地镜像\ndocker rmi myapp:v1                  # 删除镜像\n\n# 容器相关\ndocker run -d -p 8000:8000 myapp:v1  # 创建并启动容器（后台运行+端口映射）\ndocker ps                            # 列出运行中的容器\ndocker ps -a                         # 列出所有容器（含已停止的）\ndocker stop <container_id>           # 停止容器\ndocker rm <container_id>             # 删除容器\ndocker logs <container_id>           # 查看容器日志\ndocker exec -it <id> /bin/bash       # 进入容器内部\n\n# 其他\ndocker volume create mydata          # 创建数据卷\ndocker network create mynet          # 创建网络\n```\n\n**Docker Compose**：Compose 既可以**构建镜像**也可以**创建容器**。`docker-compose build` 构建镜像，`docker-compose up` 创建并启动容器。通常 `docker-compose up --build` 一步完成两者。\n\n```YAML\n# docker-compose.yml\nservices:\n  agent-api:\n    build: .                    # 构建镜像\n    ports: [\"8000:8000\"]        # 创建容器时的端口映射\n    environment:\n      - OPENAI_API_KEY=${KEY}\n  redis:\n    image: redis:7              # 使用现有镜像创建容器\n  qdrant:\n    image: qdrant/qdrant:latest\n```\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-2",
+      "title": "对 K8S 的了解",
+      "answer_md": "**Kubernetes 在 Agent 系统中的角色**：\n\nK8S 是 Agent 系统生产部署的标准方案，核心价值：\n\n**核心概念**：\n\n- **Pod**：最小部署单元，包含一个或多个容器\n\n- **Deployment**：管理 Pod 的副本数和更新策略\n\n- **Service**：为 Pod 集合提供稳定的网络访问入口\n\n- **Ingress**：管理外部流量到 Service 的路由\n\n- **HPA（Horizontal Pod Autoscaler）**：根据 CPU/内存/自定义指标自动扩缩容\n\n- **ConfigMap/Secret**：管理配置和敏感信息\n\n**Agent 系统的 K8S 部署模式**：\n\n```YAML\n# Agent API Deployment\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: agent-api\nspec:\n  replicas: 3                    # 3 个副本保证高可用\n  strategy:\n    type: RollingUpdate          # 滚动更新，零停机\n  template:\n    spec:\n      containers:\n      - name: agent-api\n        image: agent-api:v2.1\n        resources:\n          requests: { cpu: \"500m\", memory: \"1Gi\" }\n          limits: { cpu: \"2\", memory: \"4Gi\" }\n        livenessProbe:           # 存活探针\n          httpGet: { path: /health }\n        readinessProbe:          # 就绪探针\n          httpGet: { path: /ready }\n```\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-3",
+      "title": "谈谈你对 DDD 的理解",
+      "answer_md": "**DDD（Domain-Driven Design，领域驱动设计）** 在 Agent 系统中的应用：\n\n**核心概念**：\n\n- **领域（Domain）**：业务问题空间，如\"智能客服\"、\"代码审查\"\n\n- **限界上下文（Bounded Context）**：明确的业务边界，每个上下文有独立的模型和语言\n\n- **聚合根（Aggregate Root）**：一组相关对象的入口点\n\n- **领域事件（Domain Event）**：业务中发生的有意义的事件\n\n**在 Agent 系统中的映射**：\n\n```Plain Text\n限界上下文 → 独立的 Agent 模块\n聚合根 → Agent 会话（Session）\n实体 → 用户、对话、任务\n值对象 → 消息、工具调用参数\n领域事件 → \"意图已识别\"、\"工具调用完成\"、\"任务已完成\"\n仓储 → 记忆存储层（向量库、Redis）\n```\n\n**实际价值**：\n\n- 帮助划分 Agent 系统的模块边界（哪些功能归哪个服务）\n\n- 指导多 Agent 系统的通信设计（限界上下文之间通过事件通信）\n\n- 便于团队分工（每个团队负责一个限界上下文）\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-4",
+      "title": "讲讲一些不常见的设计模式，你是怎么理解和使用的？",
+      "answer_md": "**在 Agent 系统中特别有用的设计模式**：\n\n**（1）责任链模式（Chain of Responsibility）**\n\n- 用途：多层安全检查、多级意图路由\n\n```Python\nclass InputFilter:\n    def __init__(self, next_filter=None):\n        self.next = next_filter\n    \n    def handle(self, input):\n        if self.can_handle(input):\n            return self.process(input)\n        elif self.next:\n            return self.next.handle(input)\n\n# 安全检查 → 意图识别 → Agent 路由 → 执行\npipeline = SafetyFilter(IntentClassifier(AgentRouter(Executor())))\n```\n\n**（2）策略模式（Strategy）**\n\n- 用途：动态选择推理策略（ReAct/Plan-and-Solve/Direct）\n\n```Python\nclass Agent:\n    def set_strategy(self, strategy: ReasoningStrategy):\n        self.strategy = strategy\n    \n    def execute(self, task):\n        return self.strategy.execute(task)\n```\n\n**（3）观察者模式（Observer）**\n\n- 用途：Agent 事件监控和可观测性\n\n- Agent 执行的每一步发布事件，监控系统订阅并记录\n\n**（4）装饰器模式（Decorator）**\n\n- 用途：为工具调用添加重试、日志、计时等横切关注点\n\n```Python\n@retry(max_attempts=3)\n@log_execution\n@timeout(30)\ndef call_tool(name, args):\n    return tool_registry[name](**args)\n```\n\n**（5）中介者模式（Mediator）**\n\n- 用途：Multi-Agent 的 Orchestrator，协调多个 Agent 间的通信\n\n- Agent 之间不直接通信，而是通过 Mediator 中转\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-5",
+      "title": "你是否有 AI 编程的经历和理解？AI 辅助 IDE 开发工具、AI 辅助开发的实践经验",
+      "answer_md": "**主流 AI 编码工具体验**：\n\n**实践经验总结**：\n\n1. **AI 适合做的事**：样板代码、单元测试、重构、文档生成、bug 修复\n\n2. **AI 不适合做的事**：架构设计决策、复杂业务逻辑、安全审计\n\n3. **最佳实践**：先用自然语言描述需求 → AI 生成初版 → 人工审查修改 → AI 生成测试\n\n4. **Context 是关键**：给 AI 足够的上下文（相关文件、需求描述、约束条件）比用更强的模型更有效\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-6",
+      "title": "项目中 AI 贡献的代码占比",
+      "answer_md": "全球数据显示 AI 已生成约 41% 的新代码。在不同项目类型中比例差异大：\n\n- **前端 UI 代码**：60-80%（样板代码多，AI 生成效率高）\n\n- **后端业务逻辑**：30-50%（需要人工设计，AI 辅助实现）\n\n- **算法/核心逻辑**：10-20%（高度定制化，AI 辅助有限）\n\n- **测试代码**：50-70%（AI 生成测试用例非常高效）\n\n- **配置/部署脚本**：70-90%（模板化内容，AI 几乎可以全自动）\n\n**关键认知**：AI 贡献占比高不等于质量高。人工审查仍然是必要的。METR 的研究发现，有经验的开发者使用 AI 工具实际上完成任务慢了 19%（尽管他们主观感觉快了 20%）。AI 编码的价值更多在于降低心智负担和处理枯燥任务。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-7",
+      "title": "如果你用 Cursor 写代码的时候某个地方 AI 一直改一直改还报错，你会怎么解决？",
+      "answer_md": "**系统化解决方案**：\n\n1. **停下来，手动分析错误**：不要让 AI 持续在同一个方向上挣扎。阅读错误信息，理解根本原因。\n\n2. **提供更精确的上下文**：\n\n    - 打开相关文件让 Cursor 能\"看到\"依赖关系\n\n    - 在 Chat 中明确说明：\"这个错误是因为 X 依赖在 Y 版本中 API 变了\"\n\n    - 粘贴完整的报错信息和相关代码\n\n3. **缩小问题范围**：\n\n    - 不要让 AI 一次性改大块代码\n\n    - 将问题拆解为更小的独立子问题\n\n    - \"先只修复这个函数的类型错误\"\n\n4. **切换策略**：\n\n    - 从\"修复代码\"切换到\"解释问题\"：让 AI 先分析为什么报错\n\n    - 从自动修复切换到手动修改：根据 AI 的分析自己改\n\n5. **重新开始对话**：Cursor 的长对话会累积上下文噪声，新开一个 Chat 往往更有效\n\n6. **检查 Memory Bank / Rules**：确认 `.cursor/rules/` 中是否有与当前问题相关的规则\n\n7. **查官方文档**：AI 可能使用了过时的 API，手动查阅最新文档确认正确用法\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-8",
+      "title": "你了解代码理解相关功能的实现原理吗？",
+      "answer_md": "**代码理解的技术原理**（以 Cursor/GitHub Copilot 为例）：\n\n**（1）代码索引**\n\n```Plain Text\n项目文件 → AST 解析 → 符号提取（函数、类、变量）\n         → 代码嵌入（向量化）→ 向量索引\n```\n\n- 构建项目的代码符号表和语义索引\n\n- 支持按语义相似度检索相关代码片段\n\n**（2）上下文收集**\n\n```Plain Text\n当前光标位置 → 收集上下文：\n  - 当前文件内容\n  - import 的模块\n  - 同目录的相关文件\n  - 符号的定义和引用（通过 LSP）\n  - 最近编辑的文件\n```\n\n**（3）检索增强**\n\n- 用当前代码的语义向量检索项目中最相关的代码片段\n\n- 类似 RAG，但数据源是代码库而非文档\n\n**（4）Prompt 构建**\n\n```Plain Text\nSystem Prompt + 项目上下文（架构、技术栈）\n+ 相关代码片段（检索得到）\n+ 当前文件内容\n+ 用户指令\n→ LLM → 代码生成/修改\n```\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "工程化与部署-9",
+      "title": "AI 审核代码的整体流程是什么？在流程中哪些步骤最容易出现误判？",
+      "answer_md": "**整体流程**：\n\n```Plain Text\n1. 代码输入 → 预处理（提取 Diff/完整文件）\n2. 上下文收集 → 获取相关文件、提交历史、代码规范文档\n3. Prompt 构建 → 组装审查 Prompt + 代码 + 上下文\n4. LLM 推理 → 生成审查结果（问题列表 + 建议）\n5. 结果过滤 → 去除低置信度结果、去重\n6. 格式化输出 → 生成结构化审查报告\n7. 人工确认 → Critical/Major 级别需要人工确认\n```\n\n**最容易误判的步骤**：\n\n**（1）上下文不足导致误判（Step 2）**\n\n- 只看 Diff 不看完整文件 → 不理解代码意图 → 误报\n\n- 不了解项目约定 → 将正常的项目惯例标记为问题\n\n- 缓解：增加上下文窗口，注入项目规范文档\n\n**（2）LLM 推理中的幻觉（Step 4）**\n\n- 模型\"发明\"了不存在的安全漏洞\n\n- 基于过时的 API 知识给出错误建议\n\n- 缓解：降低 temperature、增加事实依据要求\n\n**（3）风格偏好 vs 真实问题混淆（Step 4）**\n\n- 将代码风格偏好报告为 Major 级别问题\n\n- 缓解：Prompt 中明确区分功能问题和风格问题\n\n**（4）上下文相关的假阳性（Step 5）**\n\n- 代码看起来有问题，但在特定上下文中是正确的\n\n- 如：有意的空 catch 块（已在上层处理异常）\n\n- 缓解：要求模型考虑\"这段代码可能是有意为之的场景\"\n\n---",
+      "quiz": null
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "chapter": "模型相关",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "模型相关-1",
+      "title": "什么是 Token？Token 是怎么来的？是如何划分的？不同模型的 Token 划分方式会有什么差异？",
+      "answer_md": "**Token 的本质**：Token 是 LLM 处理文本的最小单元。模型不直接处理字符或单词，而是将文本拆分为 Token 序列，每个 Token 映射到一个整数 ID。\n\n**Token 的产生过程（Tokenization）**：\n\n```Plain Text\n原始文本 → Tokenizer → Token 序列 → Token ID 序列 → 模型处理\n\n示例：\"I love programming\" \n  → [\"I\", \" love\", \" program\", \"ming\"]  (4个Token)\n  → [40, 3567, 15234, 2468]              (4个ID)\n```\n\n**主流 Tokenization 算法**：\n\n**不同模型的差异**：\n\n1. **词汇表大小**：GPT-4 约 10 万，Llama 约 3.2 万，Claude 约 10 万\n\n2. **中文处理**：早期 GPT 模型 1 个汉字可能 2-3 个 Token；新模型优化后通常 1 个汉字 ≈ 1-1.5 个 Token\n\n3. **代码处理**：专门优化过的模型（如 Codex）会将常见代码模式作为单个 Token\n\n4. **数字处理**：有些模型将每个数字作为独立 Token，有些会合并连续数字\n\n**实际影响**：\n\n- Token 划分方式直接影响上下文窗口的实际容量（同样 200K Token，不同 Tokenizer 能装的文本量不同）\n\n- 中文文本在多数模型中的 Token 效率低于英文（同样内容需要更多 Token）\n\n- 1000 个英文 Token ≈ 750 个单词 ≈ 约 500 个中文字\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-2",
+      "title": "对于模型的选型你是否有考虑呢？（不同任务采用不同模型）",
+      "answer_md": "**模型选型的决策框架**：\n\n```Plain Text\n任务类型 × 质量要求 × 延迟要求 × 成本预算 → 最优模型\n```\n\n**分任务推荐（2026 年 3 月版本）**：\n\n**大厂实践中的混合模型策略**：\n\n```Python\nclass ModelRouter:\n    def select_model(self, task):\n        if task.complexity == \"high\" and task.quality_requirement == \"critical\":\n            return \"claude-opus-4-6\"      # 最强模型，不惜成本\n        elif task.type == \"code\":\n            return \"claude-sonnet-4-6\"     # 代码任务性价比最高\n        elif task.latency_requirement < 1.0:  # 秒级响应\n            return \"claude-haiku-4-5\"      # 最快\n        elif task.type == \"classification\":\n            return \"fine-tuned-classifier\" # 专用小模型\n        else:\n            return \"claude-sonnet-4-6\"     # 默认选择\n```\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-3",
+      "title": "需要实现一个任务，四种方式（微调/换更大模型/上下文工程/提示词工程），哪个性价比最高？",
+      "answer_md": "**四种方式的全面对比**：\n\n**性价比排序（一般情况）**：\n\n```Plain Text\nPrompt 工程 > 上下文工程（RAG） > 换更大模型 > 微调\n```\n\n**决策流程**：\n\n```Plain Text\nStep 1: 先优化 Prompt（成本最低，2-3天能完成）\n  → 效果达标？→ 结束\n  → 效果不足？→ 继续\n\nStep 2: 加入上下文工程（RAG/Few-shot动态注入，1-2周）\n  → 效果达标？→ 结束\n  → 效果不足？→ 继续\n\nStep 3: 尝试更强的模型（几小时切换）\n  → 效果达标？评估成本能否接受 → 结束\n  → 效果不足或成本太高？→ 继续\n\nStep 4: 微调（需要高质量标注数据，2-4周）\n  → 适合场景：任务高度特化、数据充足、推理量大（微调小模型替代大模型可省成本）\n```\n\n**关键洞察**：LangChain 2025 年调研显示，57% 的组织不做微调，而是依赖基础模型 + Prompt 工程 + RAG。微调在大多数应用场景中不是必需的。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-4",
+      "title": "如果换一个参数量更大的模型，会不会比微调好？",
+      "answer_md": "**答案：不一定，取决于具体场景。**\n\n**更大模型更好的场景**：\n\n- 任务需要广泛的通用能力（如开放式对话、通用问答）\n\n- 没有足够的高质量标注数据进行微调\n\n- 任务变化频繁，微调的模型需要频繁更新\n\n- 需要多语言、多领域的泛化能力\n\n**微调更好的场景**：\n\n- 任务高度特化（如特定行业的实体识别、特定格式的输出）\n\n- 有大量高质量标注数据（>1000 条）\n\n- 推理量极大，需要用小模型降成本（微调 7B 模型达到 70B 模型在特定任务上的效果）\n\n- 需要特定的输出风格或格式一致性\n\n- 有严格的延迟要求（大模型推理慢）\n\n**经验法则**：\n\n- 先试大模型 + 好的 Prompt → 如果效果差距在 5% 以内，不值得微调\n\n- 如果效果差距 >10%，且有充足数据，考虑微调\n\n- 微调的\"甜蜜点\"：用中等规模模型（7B-13B）微调，在特定任务上达到或超过大模型效果，同时推理成本低数倍\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-5",
+      "title": "模型预热机制",
+      "answer_md": "**什么是模型预热（Model Warm-up）**：\n\n模型预热是指在正式服务请求前，通过发送预设请求让模型完成初始化加载，避免首次请求的高延迟。\n\n**为什么需要预热**：\n\n1. **模型加载延迟**：大模型首次加载到 GPU 需要数十秒\n\n2. **KV Cache 初始化**：首次推理需要初始化注意力缓存\n\n3. **CUDA 编译**：部分算子首次执行时需要 JIT 编译\n\n4. **连接池建立**：API 调用需要建立 TCP 连接池\n\n**预热实现**：\n\n```Python\nclass ModelWarmup:\n    def __init__(self, model):\n        self.model = model\n    \n    def warmup(self):\n        \"\"\"部署后立即执行预热\"\"\"\n        # 1. 发送短文本请求（触发模型加载）\n        self.model.generate(\"Hello\", max_tokens=5)\n        \n        # 2. 发送长文本请求（触发KV Cache扩展）\n        long_text = \"test \" * 1000\n        self.model.generate(long_text, max_tokens=5)\n        \n        # 3. 触发工具调用路径\n        self.model.generate(\"What's the weather?\", tools=[...], max_tokens=50)\n        \n        print(\"Warmup complete, model ready to serve\")\n\n# 部署脚本中\napp = FastAPI()\n\n@app.on_event(\"startup\")\nasync def startup():\n    warmup = ModelWarmup(model)\n    warmup.warmup()\n```\n\n**API 调用场景的预热**：\n\n- 建立 HTTP 连接池（Connection Pooling）\n\n- 发送测试请求验证 API Key 和网络连通性\n\n- 缓存 System Prompt 的 Prompt Cache\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-6",
+      "title": "vLLM 的 PagedAttention 原理？",
+      "answer_md": "**核心问题**：传统 LLM 推理中，KV Cache 的内存管理极其浪费——系统为每个请求预分配固定大小的连续内存块，导致 60-80% 的内存被浪费（内部碎片、外部碎片、预留浪费）。\n\n**PagedAttention 的核心思想**：借鉴操作系统的虚拟内存分页机制来管理 KV Cache。\n\n**类比理解**：\n\n```Plain Text\n操作系统                    vLLM\n──────────                ──────\n进程 → 虚拟内存             请求 → 逻辑 KV Block\n物理内存页框                物理 KV Block（GPU 显存）\n页表                       Block Table\n按需分配页                  按需分配 KV Block\n```\n\n**工作原理**：\n\n1. **分块存储**：将 KV Cache 切分为固定大小的 Block（如每 Block 存 16 个 Token 的 K/V 向量），Block 不需要连续存储\n\n2. **逻辑-物理映射**：每个请求维护一个 Block Table，记录逻辑 Block 到物理 Block 的映射关系\n\n3. **按需分配**：\n\n```Plain Text\nToken 1-16 → 分配 Physical Block A\nToken 17-32 → 分配 Physical Block B（可以在显存任意位置）\nToken 33 生成 → Block B 还有空间，直接写入\nToken 49 生成 → Block B 已满，从空闲池分配 Physical Block C\n```\n\n1. **注意力计算**：PagedAttention Kernel 遍历 Block Table，按正确的逻辑顺序访问物理 Block 中的 K/V 向量计算注意力，数学上与标准注意力完全等价\n\n2. **内存回收**：请求结束后，其 Block 立即归还空闲池，供其他请求复用\n\n**三大优势**：\n\n- **消除碎片**：所有 Block 大小相同，无外部碎片；按需分配，极少内部碎片。内存浪费从 60-80% 降至 4% 以下\n\n- **内存共享**：多个请求共享相同前缀时（如共享 System Prompt），物理 Block 可以被多个请求的 Block Table 引用（Copy-on-Write），Beam Search 场景节省 55% 内存\n\n- **灵活调度**：Block 可以被换出到 CPU 内存或重新计算，实现灵活的内存压力管理\n\n**性能数据**：vLLM 相比 HuggingFace Transformers 推理吞吐量提升 2-24 倍，GPU 利用率通常超过 90%。单 Kernel 延迟增加约 20-26%，但因可并发处理更多请求，端到端吞吐量大幅提升。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-7",
+      "title": "什么是 CoT（Chain of Thought）？为什么它能提高模型处理复杂任务的能力？",
+      "answer_md": "**CoT（思维链）** 是一种让 LLM 在给出最终答案前先展示推理步骤的技术。\n\n**基本形式**：\n\n```Plain Text\n问题：小明有 5 个苹果，给了小红 2 个，又买了 3 个，现在有几个？\n\nWithout CoT：6个（可能直接给错误答案）\n\nWith CoT：\nStep 1: 小明初始有 5 个苹果\nStep 2: 给了小红 2 个，剩余 5-2=3 个\nStep 3: 又买了 3 个，最终 3+3=6 个\n答案：6个\n```\n\n**为什么 CoT 有效**：\n\n1. **分解复杂问题**：将一个多步推理问题拆分为多个简单步骤，每步的推理负担更小\n\n2. **激活中间状态**：强制模型生成中间推理结果，这些结果成为后续推理的\"工作记忆\"\n\n3. **自我校验**：中间步骤使得模型有机会发现并纠正前面的错误\n\n4. **减少跳跃推理**：防止模型从问题直接\"跳到\"答案，跳过关键推理步骤\n\n**CoT 的变体**：\n\n**工程实践注意事项**：\n\n- CoT 会增加输出 Token（推理过程也是 Token），增加成本\n\n- 对于简单任务，CoT 反而可能降低效率\n\n- 部分模型内置了思考模式（如 Claude 的 extended thinking），无需在 Prompt 中显式要求\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "模型相关-8",
+      "title": "介绍一些 AI 大模型",
+      "answer_md": "**2026 年主流大模型全景图**：\n\n**闭源模型**：\n\n**开源模型**：\n\n**特殊用途模型**：\n\n- **嵌入模型**：OpenAI text-embedding-3-large, BGE-M3, E5\n\n- **视觉模型**：GPT-5 Vision, Gemini Vision\n\n- **代码模型**：Claude Code (基于 Opus/Sonnet), Codex\n\n- **推理模型**：o3, DeepSeek-R1（专注深度推理）\n\n---",
+      "quiz": null
+    }
+  ]
+}

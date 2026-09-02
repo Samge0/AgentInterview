@@ -1,0 +1,92 @@
+{
+  "chapter": "agent-基础概念",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "agent-基础概念-1",
+      "title": "你对 Agent 了解多少呢？",
+      "answer_md": "Agent（智能体）是一种能够**感知环境、自主决策、执行行动**的 AI 系统。与传统的\"一问一答\"式 LLM 调用不同，Agent 具备以下核心能力：\n\n**本质定义**：Agent = LLM（大脑） + 感知（Perception） + 记忆（Memory） + 规划（Planning） + 工具使用（Tool Use） + 行动（Action）。Agent 以目标为导向，可以在无人干预的情况下，自主拆解任务、选择工具、执行操作、观察结果并迭代优化，直到任务完成。\n\n**学术渊源**：Agent 的概念最早可追溯到人工智能的 BDI（Belief-Desire-Intention）架构。2023 年以来，随着 GPT-4 等大模型能力的提升，基于 LLM 的 Agent 成为热门研究方向。标志性工作包括 AutoGPT（2023）、BabyAGI（2023）、ReAct 论文（Yao et al., 2022）以及 Generative Agents（斯坦福小镇，2023）。\n\n**产业现状**：根据 LangChain 2025 年底的调研，超过 57% 的组织已有 Agent 在生产环境中运行。Gartner 预测，到 2028 年 33% 的企业软件将嵌入 Agentic AI 能力。这个领域正从\"能不能做\"转向\"如何规模化、可靠地部署\"。\n\n**大厂面试追问角度**：面试官可能追问\"你在实际项目中如何落地 Agent\"，回答要点：选择合适的框架（如 LangGraph）、设计稳健的 Agent Loop、关注 Error Recovery、成本控制和可观测性。\n\n---",
+      "quiz": {
+        "stem": "Agent 的本质定义中，除 LLM 外还包含哪些核心要素？",
+        "options": [
+          "感知+记忆+规划+工具使用+行动",
+          "只有大模型参数",
+          "只需要 Prompt",
+          "只有 RAG 检索"
+        ],
+        "answer": 0,
+        "explain": "Agent = LLM + 感知 + 记忆 + 规划 + 工具使用 + 行动。"
+      }
+    },
+    {
+      "id": "agent-基础概念-2",
+      "title": "Agent 和 LLM（大型语言模型）有什么区别？",
+      "answer_md": "这是一个核心概念辨析题，需要从多个维度清晰区分：\n\n**一句话总结**：LLM 是 Agent 的\"大脑\"，但 Agent 还需要\"眼睛\"（感知）、\"手脚\"（工具）、\"记忆\"和\"思考方法\"（推理策略）才构成完整的智能体。就像人的大脑很重要，但仅有大脑不足以完成任何实际任务。\n\n**面试加分点**：可以类比操作系统 — LLM 相当于 CPU，Agent 相当于整个操作系统，包含了进程调度（规划）、内存管理（记忆）、I/O 设备（工具）和文件系统（持久化存储）。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-3",
+      "title": "一个完整的 Agent 智能体架构一般包括哪些部分？",
+      "answer_md": "学术界和工业界对 Agent 架构有高度一致的共识，核心组件包括：\n\n**（1）Profile / 角色定义**\n\n- System Prompt 定义 Agent 的身份、能力边界、行为约束\n\n- 例如：\"你是一个高级数据分析师，擅长 SQL 查询和数据可视化\"\n\n**（2）Planning / 规划模块**\n\n- 任务分解（Task Decomposition）：将复杂目标拆解为可执行的子任务\n\n- 策略选择：决定执行顺序和方法\n\n- 典型范式：CoT（Chain-of-Thought）、ReAct、Plan-and-Solve、Tree-of-Thought\n\n**（3）Memory / 记忆系统**\n\n- 短期记忆（Short-term Memory）：当前对话的上下文窗口\n\n- 长期记忆（Long-term Memory）：通过向量数据库、KV 存储等持久化历史信息\n\n- 工作记忆（Working Memory）：Agent 当前推理链中的中间状态\n\n**（4）Tools / 工具集**\n\n- 搜索引擎、代码解释器、API 调用、数据库查询、文件操作等\n\n- 通过 Function Calling / Tool Use 协议与 LLM 集成\n\n- MCP（Model Context Protocol）是 2025 年兴起的工具标准化协议\n\n**（5）Action / 行动执行器**\n\n- 将 LLM 的决策转化为实际操作\n\n- 包括工具调用的执行、结果的收集和格式化\n\n**（6）Observation / 感知与反馈**\n\n- 收集行动执行的结果\n\n- 将外部环境的反馈注入到下一轮推理中\n\n**（7）Orchestration / 编排层**\n\n- Agent Loop 的核心控制逻辑\n\n- 状态管理、错误处理、退出条件判断、超时控制\n\n这七个组件共同构成了一个完整的 Agent 系统。在工程实践中，还需要加上**可观测性（Observability）**层用于监控和调试、**安全护栏（Guardrails）**层用于防止异常行为。\n\n---",
+      "quiz": {
+        "stem": "以下哪项不属于 Agent 架构的七大核心组件？",
+        "options": [
+          "规划模块 Planning",
+          "记忆系统 Memory",
+          "GPU 集群调度",
+          "工具集 Tools"
+        ],
+        "answer": 2,
+        "explain": "七大组件不含 GPU 调度，那是基础设施层面。"
+      }
+    },
+    {
+      "id": "agent-基础概念-4",
+      "title": "Agent 的工作模式都有什么？",
+      "answer_md": "这是对 Agent 推理-执行范式的考察，主流工作模式包括：\n\n**（1）ToolsCallingAgent（工具调用型）**\n\n- 最基础的模式，LLM 根据用户请求直接选择并调用工具\n\n- 流程：用户输入 → LLM 决定调用哪个工具 → 执行工具 → 返回结果\n\n- 适用场景：简单的单步任务，如天气查询、翻译\n\n- 代表实现：OpenAI Function Calling\n\n**（2）ReActAgent（推理-行动型）**\n\n- 来自 Yao et al., 2022 论文，核心是 Thought → Action → Observation 的循环\n\n- LLM 先\"思考\"（生成推理链），再\"行动\"（调用工具），然后\"观察\"（分析结果），循环直至得出最终答案\n\n- 优点：可解释性强，可追踪推理过程，自我纠错能力较好\n\n- 缺点：每轮推理需要额外的模型调用，延迟和成本较高；错误可能在循环中传播\n\n- 适用场景：复杂的多步推理任务，需要动态适应的场景\n\n**（3）ReflectionAgent（反思型）**\n\n- 在 ReAct 基础上增加了自我评估层\n\n- Agent 生成初始响应后，切换到\"批评者\"模式，检查准确性、逻辑一致性\n\n- 如果发现问题，自动修正并重新生成\n\n- 典型实现：Reflexion 框架\n\n- 适用场景：对准确性要求极高的场景，如代码生成、学术写作\n\n**（4）PlanAndSolveAgent（规划-执行型）**\n\n- 先制定全局计划，再逐步执行\n\n- 流程：用户输入 → Planner 生成步骤列表 → Executor 依次执行每个步骤 → 汇总结果\n\n- 优点：对复杂任务有更好的全局视野，不容易陷入局部循环\n\n- 缺点：计划一旦确定，灵活性不足；重新规划成本高\n\n- 适用场景：步骤明确的多步任务，如数据分析、报告生成\n\n**（5）Multi-Agent（多智能体协作型）**\n\n- 多个专业化 Agent 协作完成复杂任务\n\n- 模式包括：层级式（一个 Orchestrator + 多个 Worker）、对话式（Agent 之间互相交流）、竞争式（多个方案择优）\n\n- 代表框架：CrewAI、AutoGen、MetaGPT\n\n- 适用场景：软件开发（PM → 架构师 → 开发 → 测试）、复杂研究\n\n**（6）Human-in-the-Loop（人机协作型）**\n\n- 在关键节点暂停执行，等待人类审核、批准或提供输入\n\n- 适用场景：高风险决策（金融交易、法律文书）、需要人类判断的创意任务\n\n**选择建议**：从简单模式开始，按需增加复杂度。单 Agent + ReAct 能解决大部分真实场景，不要过早引入多 Agent。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-5",
+      "title": "了解过 Agent 的设计范式吗？了解其他的 Agent 范式吗？",
+      "answer_md": "Agent 设计范式是更高层次的架构方法论，目前业界公认的七大设计范式：\n\n**① ReAct 范式（推理+行动）**\n\n- 交替进行推理和行动，是最基础也最重要的单 Agent 模式\n\n- 推荐作为复杂任务的默认起点\n\n**② Reflection 范式（自我反思）**\n\n- Agent 输出后进行自我评估，发现错误后迭代改进\n\n- 实现方式：Critic Agent 审查 Actor Agent 的输出\n\n**③ Tool Use 范式（工具使用）**\n\n- Agent 作为工具编排器，智能选择和组合外部工具\n\n- 关键挑战：工具描述的清晰度直接影响 Agent 的工具选择准确性\n\n**④ Planning 范式（规划先行）**\n\n- 先生成执行计划，再按计划执行\n\n- 变体：Plan-and-Solve、LATS（Language Agent Tree Search）、AdaPlanner（自适应规划）\n\n**⑤ Multi-Agent Collaboration 范式（多智能体协作）**\n\n- 多个专业化 Agent 分工合作\n\n- 子模式：Sequential（串行管道）、Parallel（并行执行）、Hierarchical（层级调度）\n\n**⑥ Sequential Workflow 范式（流水线工作流）**\n\n- 预定义的步骤序列，每步处理结果传递给下一步\n\n- 确定性强，适合业务流程固定的场景\n\n**⑦ Human-in-the-Loop 范式（人机协同）**\n\n- 人类作为 Agent 系统的一部分参与决策\n\n- 适合高风险、需要合规审核的场景\n\n**其他前沿范式**：\n\n- **LATS（Language Agent Tree Search）**：结合蒙特卡洛树搜索进行探索式规划\n\n- **Voyager**：在 Minecraft 中实现自主探索和技能积累的终身学习 Agent\n\n- **Generative Agents**：斯坦福小镇，模拟人类社会行为的 Agent 架构\n\n- **Self-Discover**：让 LLM 自主发现并组合推理策略\n\n- **RAISE**：结合了记忆检索和反思的综合框架\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-6",
+      "title": "Agent 推理模式、推理模式的差异化设计、推理模式的选择机制",
+      "answer_md": "**主流推理模式对比**：\n\n**差异化设计要点**：\n\n1. **推理深度**：Direct < CoT < ReAct < Plan-and-Solve < ToT\n\n2. **工具依赖**：Direct/CoT 不需要工具，ReAct 强依赖工具，Plan-and-Solve 适度依赖\n\n3. **计算开销**：与推理深度正相关，需要权衡效果与成本\n\n4. **容错机制**：ReAct 通过观察修正，Reflexion 通过显式自我批评修正\n\n**选择机制（决策树）**：\n\n- 任务是否需要外部信息？否 → CoT / Direct；是 → 进入下一判断\n\n- 任务步骤是否明确？是 → Plan-and-Solve；否 → 进入下一判断\n\n- 任务是否需要动态适应？是 → ReAct；否 → 进入下一判断\n\n- 任务是否对准确性有极高要求？是 → Reflexion / ToT\n\n- 实际项目中通常采用**混合模式**：用 Plan-and-Solve 做全局规划，每个子任务内部用 ReAct 执行\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-7",
+      "title": "了解过市面上有哪些智能体 Agent 吗？",
+      "answer_md": "可以从框架层和产品层两个维度回答：\n\n**开发框架层**：\n\n- **LangChain / LangGraph**：最广泛采用的 Agent 框架，LangGraph 提供图状态编排，支持复杂的有状态工作流\n\n- **CrewAI**：基于角色的多 Agent 协作框架，超过 10 万开发者通过社区课程获得认证\n\n- **AutoGen / Microsoft Agent Framework**：微软将 AutoGen 和 Semantic Kernel 合并为统一的 Agent Framework，1.0 GA 版本目标 2026 Q1 发布\n\n- **LlamaIndex**：专注于 RAG 和知识密集型 Agent 工作流\n\n- **SmolAgents（HuggingFace）**：轻量级 Agent 框架，核心逻辑约 1000 行代码\n\n- **MetaGPT**：模拟软件开发团队的多 Agent 系统\n\n- **Dify / Coze**：低代码 Agent 搭建平台\n\n**产品层**：\n\n- **Claude Code**：Anthropic 的命令行 Agent 编码工具\n\n- **ChatGPT with Plugins / GPTs**：OpenAI 的消费级 Agent\n\n- **GitHub Copilot**：代码 Agent，超 80% BNY Mellon 开发者日常使用\n\n- **Cursor / Windsurf**：AI 编码 IDE，集成 Agent 式交互\n\n- **Devin**：Cognition 的自主软件工程 Agent\n\n- **Manus**：2025 年爆火的通用 Agent 产品\n\n- **Perplexity**：搜索型 Agent\n\n- **AutoGPT / AgentGPT**：早期的自主 Agent 先驱\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-8",
+      "title": "Agent Loop 听说过吗？",
+      "answer_md": "Agent Loop 是 Agent 系统的**核心执行循环**，也叫 Agent 主循环或控制循环。它是 Agent \"自主性\"的实现机制。\n\n**基本结构**：\n\n```Plain Text\nwhile not done:\n    1. 感知（Perceive）：获取当前状态、用户输入、环境反馈\n    2. 思考（Think）：LLM 推理，决定下一步行动\n    3. 行动（Act）：执行工具调用、生成内容等\n    4. 观察（Observe）：收集行动结果\n    5. 判断（Evaluate）：任务是否完成？是否需要继续？\n```\n\n**关键设计要素**：\n\n1. **退出条件**：\n\n    - 模型判断任务完成（生成 Final Answer）\n\n    - 达到最大迭代次数（防止无限循环）\n\n    - 超时机制（总执行时间限制）\n\n    - 重复行动检测（连续相同工具调用说明陷入死循环）\n\n2. **状态管理**：每次循环需要维护并更新 Agent 的内部状态，包括已执行的步骤、收集的信息、中间结果\n\n3. **错误恢复**：工具调用失败时需要有 fallback 机制，如重试、换工具、降级处理\n\n4. **成本控制**：每次循环都消耗 Token，需要监控和限制总消耗\n\n**以 Claude Code 为例**：每次用户输入后，Agent Loop 会持续运行，读取文件、修改代码、执行命令、观察结果、再做判断，直到认为任务完成或达到限制。\n\n**面试追问**：如果面试官问\"如何防止 Agent Loop 死循环\"，要回答：设置 max_iterations、检测工具调用重复模式、设置总 Token 预算、加入 timeout 机制、在循环中注入\"如果连续 3 次没有进展则总结当前状态并退出\"的指令。\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-9",
+      "title": "你认为当前 Agent 技术难以突破的核心瓶颈有哪些？",
+      "answer_md": "这是一道考察技术深度和行业洞察的开放题，需要从多个层面回答：\n\n**① 可靠性瓶颈（Reliability）**\n\n- Agent 的错误会**级联传播**：ReAct 循环中某一步的错误会影响后续所有步骤\n\n- LLM 的幻觉问题在 Agent 场景中被放大：幻觉可能导致错误的工具调用，产生不可预知的后果\n\n- 行业数据：LangChain 调研中 32% 的受访者将\"质量\"列为 Agent 投产的最大障碍\n\n**② 规划能力不足（Planning）**\n\n- 当前 LLM 的规划能力仍然有限，面对复杂任务容易制定次优甚至错误的计划\n\n- 长链任务中容易\"迷失\"，忘记最初目标\n\n- 自我纠错能力有限，经常在错误方向上\"执着\"\n\n**③ 成本与延迟（Cost & Latency）**\n\n- Agent 的多轮交互导致 Token 消耗量远超单次调用，成本非线性增长\n\n- 每增加一个推理步骤就增加一次 LLM 调用，延迟累积\n\n- 编码 Agent 单次会话可能涉及 50-100 次 API 调用\n\n**④ 长上下文退化（Context Rot）**\n\n- 即使模型支持百万级 Token 窗口，实际性能随上下文增长显著下降\n\n- \"Lost in the Middle\" 现象：模型对上下文中间位置的信息召回率明显低于首尾\n\n- Chroma 的研究表明，大多数模型在达到标称上下文长度之前就开始不可靠\n\n**⑤ 安全与可控性（Safety & Control）**\n\n- Agent 具有执行外部操作的能力（删除文件、发送请求等），风险远高于纯文本生成\n\n- Prompt Injection 攻击在 Agent 场景更危险\n\n- 缺乏成熟的权限控制和审计机制\n\n**⑥ 评测标准缺失（Evaluation）**\n\n- 缺乏统一的 Agent 能力评测基准\n\n- 传统的 NLP 评测指标不适用于 Agent 的动态交互场景\n\n- LangChain 调研显示只有 52% 的组织实施了 Agent 评测\n\n**⑦ 可观测性不足（Observability）**\n\n- Agent 的多步执行过程难以追踪和调试\n\n- 故障定位困难：不清楚是 LLM 推理错误还是工具返回错误还是上下文污染\n\n- 好消息是 89% 的组织已实施某种形式的 Agent 可观测性\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-10",
+      "title": "近半年一年大模型领域有哪些让你印象深刻的技术或产品进展？",
+      "answer_md": "**模型能力跃进**：\n\n- **Claude Opus 4.6**：Anthropic 最新旗舰，1M 上下文窗口且性能不衰减，在多项基准中排名前列\n\n- **GPT-5 系列**：400K 上下文窗口，128K 最大输出，幻觉率降低 80%\n\n- **Gemini 3.1 Pro**：在智能指数排行中与 GPT-5.4 并列第一\n\n- **DeepSeek V3/R1**：开源模型表现惊艳，MoE 架构 + RL 训练，数学和编码性能优秀\n\n- **Llama 4 Scout**：10M Token 上下文窗口，开源界最大\n\n**Agent 基础设施成熟**：\n\n- **MCP（Model Context Protocol）**：Anthropic 推出的工具标准化协议，成为行业标准\n\n- **Microsoft Agent Framework**：AutoGen + Semantic Kernel 合并，企业级 Agent 开发统一\n\n- **LangGraph 成为主流**：图状态编排成为复杂 Agent 工作流的事实标准\n\n**产品创新**：\n\n- **Claude Code**：命令行 Agent 编码，新增语音控制功能\n\n- **Cursor / Windsurf**：AI 编码 IDE 大爆发，Memory Bank 机制提升跨会话连续性\n\n- **Manus**：通用 Agent 产品引爆市场讨论\n\n- **Deep Research**：多个平台推出的深度研究 Agent 功能\n\n**行业数据**：\n\n- NVIDIA 2026 报告显示 64% 的组织在生产环境部署 AI，88% 看到收入增长\n\n- Agentic AI 市场规模从 2024 年的 54 亿美元增长到 2025 年的 78 亿美元\n\n---",
+      "quiz": null
+    },
+    {
+      "id": "agent-基础概念-11",
+      "title": "你常用哪些大模型相关的工具/框架？",
+      "answer_md": "从一个大厂 AI 架构师的角度，按类别回答：\n\n**模型调用层**：\n\n- OpenAI API / Anthropic API / Google Vertex AI — 主力模型接口\n\n- vLLM / TGI — 开源模型推理部署\n\n- Ollama — 本地模型快速试验\n\n**Agent 开发框架**：\n\n- LangChain + LangGraph — 复杂 Agent 工作流的主力选择\n\n- CrewAI — 多 Agent 协作快速原型\n\n- LlamaIndex — RAG 和知识密集型 Agent\n\n**Prompt 工程与评测**：\n\n- LangSmith — Agent 可观测性和评测平台\n\n- PromptFoo — Prompt 评测自动化\n\n- Weights & Biases — 实验追踪\n\n**向量数据库**：\n\n- Qdrant / Milvus / Pinecone — 长期记忆存储\n\n- Chroma — 轻量级嵌入和检索\n\n**部署与运维**：\n\n- Docker + Kubernetes — 容器化部署\n\n- FastAPI — Agent 服务化\n\n- Redis — 会话状态管理和缓存\n\n**编码工具**：\n\n- Claude Code / Cursor — 日常 AI 辅助编码\n\n- GitHub Copilot — 代码补全\n\n![云梯模型_27_1.png](Images_attachments/云梯模型_27_1.png)",
+      "quiz": null
+    }
+  ]
+}

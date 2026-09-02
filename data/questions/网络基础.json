@@ -1,0 +1,102 @@
+{
+  "chapter": "网络基础",
+  "updated": "auto",
+  "questions": [
+    {
+      "id": "网络基础-1",
+      "title": "HTTPS 的工作原理是什么？",
+      "answer_md": "### 一句话概括\n\nHTTPS = HTTP + TLS/SSL，在 TCP 之上加了一层加密传输层，保证数据的机密性、完整性和身份认证。\n\n### HTTPS 完整握手流程（TLS 1.2 为例）\n\n**① TCP 三次握手：**客户端与服务器先建立 TCP 连接。\n\n**② ClientHello：**客户端发送支持的 TLS 版本、加密套件列表、一个客户端随机数（Client Random）。\n\n**③ ServerHello：**服务器选定 TLS 版本和加密套件，返回服务器随机数（Server Random）以及数字证书（包含公钥）。\n\n**④ 证书验证：**客户端验证服务器证书的合法性——检查证书链是否可信（CA 根证书校验）、域名是否匹配、证书是否过期、是否被吊销（CRL/OCSP）。\n\n**⑤ 密钥协商：**客户端生成 Pre-Master Secret，用服务器公钥加密后发送给服务器。双方根据 Client Random + Server Random + Pre-Master Secret 各自计算出相同的会话密钥（Master Secret）。\n\n**⑥ 切换加密通信：**双方各发一个 ChangeCipherSpec 通知，之后的所有通信都用对称密钥加密。\n\n### TLS 1.3 的改进\n\nTLS 1.3 将握手从 2-RTT 缩减到 1-RTT，甚至支持 0-RTT（通过 PSK 恢复会话）。废弃了 RSA 密钥交换，全面使用 ECDHE 前向保密。移除了不安全的加密算法（如 RC4、3DES、SHA-1）。\n\n### 核心安全机制\n\n**• 对称加密（AES-GCM 等）：**保证数据机密性，性能高。\n\n**• 非对称加密（RSA/ECDHE）：**用于密钥协商阶段，解决密钥分发问题。\n\n**• 数字证书（CA 体系）：**解决身份认证问题，防止中间人攻击。\n\n**• 消息认证码（MAC/HMAC）：**保证数据完整性，防篡改。\n\n**• 前向保密（Forward Secrecy）：**即使私钥泄露，历史会话也无法被解密（ECDHE 实现）。\n\n### 面试追问：为什么不全程用非对称加密？\n\n非对称加密性能远低于对称加密（慢数百倍），不适合大量数据传输。因此只在握手阶段用非对称加密交换密钥，之后用对称加密传输实际数据，这是性能与安全的最佳平衡。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-2",
+      "title": "为什么用 WebSocket，不用 SSE？",
+      "answer_md": "### 核心区别\n\nWebSocket 是全双工协议，客户端和服务器可以同时互相发送数据；SSE（Server-Sent Events）是半双工协议，只能服务器单向向客户端推送数据，客户端要发数据仍需 HTTP 请求。\n\n### 选择 WebSocket 的场景\n\n**① 实时双向交互：**如在线聊天、协作编辑、多人在线游戏——客户端需要频繁发送消息给服务器。\n\n**② 高频数据交换：**如实时交易系统、在线对战——双向低延迟通信是刚需。\n\n**③ 自定义二进制协议：**WebSocket 支持二进制帧，适合传输自定义格式的数据。\n\n**④ 连接数管理精细化：**WebSocket 一个连接即可双向通信，SSE 需要额外的 HTTP 请求通道，在高并发下占用更多资源。\n\n### SSE 更适合的场景\n\nSSE 在纯服务器推送场景下（如新闻 Feed、股票行情、日志流、LLM 流式输出）是更简单的选择，因为它基于 HTTP 协议，天然支持断线重连和事件 ID，不需要额外的协议升级。\n\n### 面试加分点\n\n在实际架构中，如果需求是'服务器推送 + 偶尔的客户端请求'，SSE + 普通 HTTP 请求的组合方案比 WebSocket 更轻量。但一旦涉及高频双向通信，WebSocket 是唯一合理的选择。大型 IM 系统（如微信、钉钉）全部使用长连接方案（WebSocket 或自定义 TCP 长连接）。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-3",
+      "title": "WebSocket 和 HTTP 区别？",
+      "answer_md": "### 协议本质\n\nHTTP 是请求-响应模型，无状态、半双工——每次通信必须由客户端发起请求，服务器被动响应。WebSocket 是全双工协议——一旦通过 HTTP 完成握手升级后，客户端和服务器在同一条 TCP 连接上可以随时互相发送数据。\n\n### 连接生命周期\n\nHTTP/1.1 虽然支持 keep-alive 复用 TCP 连接，但每个请求仍是独立的请求-响应对。HTTP/2 引入了多路复用，但本质仍是请求驱动。WebSocket 连接一旦建立就持续存在，直到任何一方主动关闭，中间不需要反复握手。\n\n### 数据帧格式\n\nHTTP 的每次请求/响应都携带完整的 Header（通常几百字节到几 KB），在高频通信场景下开销极大。WebSocket 的数据帧头部极小（2~14 字节），传输效率远高于 HTTP。\n\n### 协议标识\n\n**HTTP 使用 http:**// 或 https://；WebSocket 使用 ws:// 或 wss://（加密版）。WebSocket 的握手通过 HTTP Upgrade 机制完成：客户端发送带 Upgrade: websocket 头的 HTTP 请求，服务器返回 101 Switching Protocols。\n\n### 对比总结表\n\n| 维度 | HTTP | WebSocket |\n\n| 通信方向 | 请求-响应（半双工） | 全双工 |\n\n| 连接模式 | 短连接/Keep-Alive | 持久长连接 |\n\n| 头部开销 | 大（每次携带完整头部） | 极小（2~14 字节帧头） |\n\n| 服务器推送 | 不支持（需轮询/SSE） | 原生支持 |\n\n| 协议升级 | 不需要 | 通过 HTTP 101 升级 |\n\n| 适用场景 | REST API、页面加载 | 实时通信、游戏、协作 |",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-4",
+      "title": "HTTP 怎么变成有状态的？",
+      "answer_md": "### 核心问题\n\nHTTP 协议本身是无状态的——每个请求相互独立，服务器不会记住上一个请求是谁发的。但实际业务（登录、购物车等）需要状态。\n\n### 方案一：Cookie + Session\n\n这是最经典的方案。用户首次登录后，服务器在内存（或 Redis）中创建一个 Session 对象并分配唯一的 Session ID，通过 Set-Cookie 响应头将 Session ID 下发给浏览器。浏览器在后续每次请求中自动在 Cookie 头中带上 Session ID，服务器据此查找对应的 Session 数据，从而实现状态保持。缺点是 Session 存储在服务端，集群环境下需要 Session 共享（如 Redis 集中存储或 Session Sticky）。\n\n### 方案二：Token（JWT）\n\n服务器在用户登录验证通过后，将用户信息和权限通过签名算法（如 HMAC-SHA256）编码成一个 JWT Token，返回给客户端。客户端在每次请求中通过 Authorization: Bearer Token 头携带 Token。服务器通过验证签名来确认用户身份，不需要在服务端存储任何会话状态。优点是天然支持分布式和跨域，缺点是 Token 一旦签发无法在有效期内单独失效（除非引入黑名单机制）。\n\n### 方案三：URL 重写 / 隐藏表单字段\n\n将 Session ID 拼接在 URL 参数中（如 ?sid=xxx）或放在表单隐藏字段里。这是 Cookie 被禁用时的降级方案，安全性较差，实践中已很少使用。\n\n### 方案四：OAuth 2.0 / SSO\n\n在分布式系统或第三方登录场景中，通过 OAuth 2.0 协议获取 Access Token，在各微服务间传递来保持认证状态。结合 SSO（单点登录），用户只需登录一次就能访问多个关联系统。\n\n### 面试追问：Cookie 和 Token 怎么选？\n\n**传统 Web 应用（同域、服务端渲染）：**Cookie + Session 更简单直接。前后端分离 / 移动端 / 跨域场景：JWT Token 是主流。大厂实践中往往是混合方案——JWT 作为认证凭证，Redis 做 Token 黑名单和刷新机制。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-5",
+      "title": "在一次 HTTP 请求中，涉及的协议栈有哪些？每一层分别负责什么功能？",
+      "answer_md": "### TCP/IP 五层模型完整拆解\n\n**一次 HTTP 请求自上而下经历以下各层：**\n\n### ① 应用层（Application Layer）\n\n**协议：**HTTP/HTTPS、DNS、WebSocket\n\n**职责：**定义应用程序间的通信规则。HTTP 定义了请求/响应的格式（方法、URI、Header、Body）。DNS 负责域名到 IP 的解析。如果是 HTTPS，则在应用层和传输层之间还有一层 TLS/SSL 负责加解密。\n\n### ② 传输层（Transport Layer）\n\n**协议：**TCP（主流）、UDP\n\n**职责：**提供端到端的可靠数据传输。TCP 通过三次握手建立连接、滑动窗口进行流量控制、拥塞控制算法（Reno/Cubic/BBR）避免网络拥塞、序列号和 ACK 保证数据有序可靠到达。端口号在这一层定义（HTTP 默认 80，HTTPS 默认 443）。\n\n### ③ 网络层（Network Layer）\n\n**协议：**IP（IPv4/IPv6）、ICMP、ARP（也有划分到链路层的说法）\n\n**职责：**负责数据包的路由和转发，解决'数据从哪来到哪去'的问题。IP 协议为每个主机分配逻辑地址，路由器根据路由表逐跳转发。IP 是无连接、不可靠的——可靠性由上层 TCP 保证。\n\n### ④ 数据链路层（Data Link Layer）\n\n**协议：**以太网（Ethernet）、Wi-Fi（802.11）、PPP\n\n**职责：**负责相邻节点之间（如主机到路由器、路由器到路由器）的帧传输。MAC 地址在这一层起作用，ARP 协议将 IP 地址解析为 MAC 地址。交换机在这一层工作。\n\n### ⑤ 物理层（Physical Layer）\n\n**介质：**网线、光纤、无线电波\n\n**职责：**将比特流转换为电信号、光信号或无线信号在物理介质上传输。定义接口标准、编码方式、传输速率等物理规格。\n\n### 一次完整请求的封装过程\n\nHTTP 报文 → TCP 分段（加端口号） → IP 数据包（加 IP 地址） → 以太网帧（加 MAC 地址） → 物理信号传输。接收端则按逆序逐层解封装。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-6",
+      "title": "输入一个域名后，从浏览器到服务器大概会发生什么？DNS 解析具体是怎样的过程？",
+      "answer_md": "### 全链路流程\n\n用户在浏览器输入 www.example.com 并回车后，依次发生以下步骤：\n\n### 第一步：URL 解析\n\n浏览器判断输入的是 URL 还是搜索关键词。如果是 URL，补全协议（默认 https://），解析出协议、域名、端口、路径等信息。检查 HSTS 预加载列表，如果匹配则强制 HTTPS。\n\n### 第二步：DNS 解析（域名 → IP）\n\nDNS 解析是一个递归 + 迭代的查询过程：\n\n**① 浏览器 DNS 缓存：**浏览器首先查自己的 DNS 缓存（Chrome 可通过 chrome://net-internals/#dns 查看）。\n\n**② 操作系统 DNS 缓存：**未命中则查 OS 的 DNS 缓存（如 Linux 的 systemd-resolved）。\n\n**③ Hosts 文件：**检查 /etc/hosts（Windows 为 C:\\\\Windows\\\\System32\\\\drivers\\\\etc\\\\hosts）。\n\n**④ 本地 DNS 服务器（递归解析器）：**通常是运营商的 DNS 服务器或 8.8.8.8 这类公共 DNS，客户端向它发起递归查询。\n\n**⑤ 迭代查询过程：**本地 DNS 依次向根域名服务器 → .com 顶级域名服务器 → example.com 权威域名服务器 发起迭代查询，最终获得 IP 地址。\n\n**⑥ 缓存：**每一层都会按照 TTL 缓存结果。\n\n### 第三步：建立 TCP 连接\n\n浏览器使用解析出的 IP 地址和端口（443）发起 TCP 三次握手（SYN → SYN-ACK → ACK）。\n\n### 第四步：TLS 握手\n\n如果是 HTTPS，在 TCP 连接之上进行 TLS 握手（详见第 1 题）。\n\n### 第五步：发送 HTTP 请求\n\n浏览器构造 HTTP 请求报文（请求行 + 请求头 + 请求体），发送给服务器。\n\n### 第六步：服务器处理并返回响应\n\n服务器（经过负载均衡、反向代理 Nginx → 应用服务器 → 数据库等）处理请求，返回 HTTP 响应报文（状态码 + 响应头 + 响应体）。\n\n### 第七步：浏览器渲染页面\n\n浏览器解析 HTML → 构建 DOM 树 → 解析 CSS → 构建 CSSOM → 合并为渲染树 → Layout（布局）→ Paint（绘制）→ Composite（合成）。遇到外部资源（JS/CSS/图片）再发起新的请求。\n\n### 第八步：连接处理\n\nHTTP/1.1 Keep-Alive 复用连接；HTTP/2 多路复用。最终四次挥手关闭 TCP 连接（FIN → ACK → FIN → ACK）。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-7",
+      "title": "介绍一下 ARP 协议。ARP 请求和响应是如何工作的？",
+      "answer_md": "### ARP 是什么\n\nARP（Address Resolution Protocol，地址解析协议）用于将网络层的 IP 地址解析为数据链路层的 MAC 地址。因为以太网帧的传输依赖 MAC 地址，而上层应用只知道目标 IP，所以需要 ARP 来'翻译'。\n\n### ARP 工作流程\n\n① 主机 A 要向同一局域网内的主机 B（IP: 192.168.1.100）发送数据。\n\n② 主机 A 先查本地 ARP 缓存表，如果有 192.168.1.100 对应的 MAC 地址，直接使用。\n\n③ 如果缓存未命中，主机 A 发送 ARP 请求广播帧（目标 MAC 为 FF:FF:FF:FF:FF:FF），内容为'谁是 192.168.1.100？请告诉 192.168.1.1'。\n\n④ 局域网内所有主机都能收到这个广播，但只有 IP 为 192.168.1.100 的主机 B 会响应。\n\n⑤ 主机 B 向主机 A 发送 ARP 响应单播帧，包含自己的 MAC 地址。\n\n⑥ 主机 A 收到响应后，将 IP-MAC 映射缓存到 ARP 表中（通常缓存几分钟），后续通信直接使用。\n\n### 跨网段通信\n\n如果目标 IP 不在同一子网，主机 A 会将数据发给默认网关（路由器），ARP 请求解析的是网关的 MAC 地址，而非目标主机的 MAC 地址。路由器在每一跳重新进行 ARP 解析。\n\n### ARP 攻击与防御\n\n**ARP 欺骗（ARP Spoofing）：**攻击者发送伪造的 ARP 响应，将自己的 MAC 地址与网关 IP 绑定，实现中间人攻击或流量劫持。防御手段包括：静态 ARP 绑定、动态 ARP 检测（DAI）、交换机端口安全、802.1X 认证。\n\n### RARP\n\nRARP（逆地址解析协议）是 ARP 的反向操作，通过 MAC 地址查询 IP 地址，主要用于无盘工作站启动场景。现已基本被 DHCP/BOOTP 取代。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-8",
+      "title": "HTTP 常用方法有哪些？分别适合什么场景？GET 和 POST 的区别是什么？不同方法在幂等性和安全性上有什么区别？",
+      "answer_md": "### 常用 HTTP 方法\n\n**GET：**获取资源。如请求页面、查询接口。参数在 URL Query String 中。\n\n**POST：**提交数据/创建资源。如表单提交、上传文件。参数在请求体中。\n\n**PUT：**全量更新资源。用完整的资源表示替换目标资源。\n\n**PATCH：**局部更新资源。只修改资源的部分字段。\n\n**DELETE：**删除资源。\n\n**HEAD：**与 GET 相同，但只返回响应头，不返回响应体（常用于检测资源是否存在）。\n\n**OPTIONS：**查询服务器支持的方法，CORS 预检请求使用此方法。\n\n### GET vs POST 深度对比\n\n**① 语义：**GET 用于获取数据，POST 用于提交数据。\n\n**② 参数位置：**GET 参数在 URL 中（有长度限制，浏览器通常限制 2KB~8KB），POST 参数在 Body 中（理论无限制）。\n\n**③ 缓存：**GET 请求可被浏览器缓存、可被收藏为书签、会留在浏览器历史中；POST 不会。\n\n**④ 编码：**GET 只支持 URL 编码（ASCII），POST 支持多种编码（如 multipart/form-data、application/json）。\n\n**⑤ 安全性：**GET 参数暴露在 URL 中，不适合传输敏感数据；POST 参数在 Body 中，相对隐蔽（但不加密仍可被抓包）。\n\n**⑥ TCP 层面：**部分浏览器实现中 POST 会先发 Header 再发 Body（两个 TCP 包），GET 通常一次发送。但这不是规范要求。\n\n### 幂等性和安全性对比\n\n**安全性（Safe）：**方法不会修改服务器资源。GET、HEAD、OPTIONS 是安全的。\n\n**幂等性（Idempotent）：**多次执行相同请求，效果与执行一次相同。GET、PUT、DELETE、HEAD、OPTIONS 是幂等的。\n\nPOST 和 PATCH 既不安全也不幂等。\n\n**具体对比：**\n\nGET —— 安全 ✓ | 幂等 ✓\n\nHEAD —— 安全 ✓ | 幂等 ✓\n\nOPTIONS —— 安全 ✓ | 幂等 ✓\n\nPUT —— 安全 ✗ | 幂等 ✓（全量替换，多次结果相同）\n\nDELETE —— 安全 ✗ | 幂等 ✓（删一次和删多次效果一样）\n\nPOST —— 安全 ✗ | 幂等 ✗（每次可能创建新资源）\n\nPATCH —— 安全 ✗ | 幂等 ✗（取决于实现，增量操作可能不幂等）",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-9",
+      "title": "抓包是什么原理？为什么可以抓到网络包？HTTPS 场景下为什么抓包会更复杂？",
+      "answer_md": "### 抓包的基本原理\n\n抓包工具（如 Wireshark、tcpdump、Charles、Fiddler）通过在网络链路上截获经过的数据包来实现。根据工作层次不同，抓包原理有所区别：\n\n### 网卡混杂模式（链路层抓包）\n\n正常情况下，网卡只接收发给自己 MAC 地址的帧。将网卡设为混杂模式（Promiscuous Mode）后，可以接收所在网络段上的所有帧。Wireshark/tcpdump 就是通过操作系统的 libpcap/npcap 库，在数据链路层捕获所有进出的数据包。\n\n### 代理抓包（应用层抓包）\n\nCharles、Fiddler 等工具作为 HTTP 代理，客户端将请求先发给代理，代理再转发给目标服务器。代理可以查看和修改所有 HTTP 数据。这种方式只能捕获 HTTP 层的数据。\n\n### HTTPS 抓包为什么更复杂？\n\nHTTPS 的数据经过 TLS 加密传输。即使在链路层抓到了数据包，内容也是密文，无法直接阅读。要抓包 HTTPS，必须使用'中间人'方式：\n\n① 代理工具生成自签名的 CA 根证书，用户必须手动将其安装到系统/浏览器的受信任证书库中。\n\n② 当客户端请求 https://example.com 时，代理拦截请求，自己与 example.com 建立合法的 TLS 连接获取真实证书。\n\n③ 代理用自己的 CA 根证书动态签发一张域名为 example.com 的伪造证书，发给客户端。\n\n④ 客户端因为信任了代理的 CA 根证书，所以接受这张伪造证书，与代理建立 TLS 连接。\n\n⑤ 代理解密客户端数据 → 查看/修改 → 加密后转发给真实服务器，反之亦然。\n\n这就是经典的 MITM（中间人攻击）原理。\n\n### 为什么有些 App 抓不到 HTTPS？\n\n**① SSL Pinning（证书固定）：**App 在代码中内置了服务器证书的指纹，即使系统信任了代理 CA，App 也会拒绝不匹配的证书。\n\n② Android 7.0+ 不再默认信任用户安装的 CA 证书（除非 App 在 AndroidManifest 中显式声明）。\n\n**③ 双向认证（mTLS）：**服务器也验证客户端证书，代理无法提供合法的客户端证书。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-10",
+      "title": "实时搜索通常使用什么网络协议（如 WebSocket）？你了解或有使用过吗？",
+      "answer_md": "### 实时搜索的典型技术方案\n\n实时搜索（如搜索框输入时动态出现搜索建议）主要有以下几种实现方式：\n\n### 方案一：HTTP 短轮询 + 防抖/节流\n\n最常见的方案。前端对用户输入进行 debounce（防抖，通常 200~300ms），每次触发时发送一个普通的 HTTP GET 请求到搜索 API，获取建议列表。优点是实现简单、兼容性好、无状态。绝大多数搜索场景（如百度、Google 的搜索建议）都使用这种方式。\n\n### 方案二：WebSocket\n\n在需要极低延迟或有复杂双向交互的场景下使用。如协作编辑器中的实时搜索、在线 IDE 的代码补全。客户端与服务器维持一条 WebSocket 长连接，每次用户输入变化时通过 WebSocket 帧发送查询，服务器实时返回结果。\n\n### 方案三：SSE（Server-Sent Events）\n\n适合搜索结果需要流式推送的场景，如 AI 搜索（类似 Perplexity 的流式输出搜索结果）。客户端发起一个 SSE 请求，服务器持续推送搜索结果片段。\n\n### 实际工程要点\n\n**① 请求竞态处理：**用户快速输入时，前一个请求的响应可能晚于后一个请求，需要用 AbortController 取消过时的请求，或通过请求序号丢弃旧响应。\n\n**② 缓存策略：**对热门查询和重复查询做前端缓存（如 LRU Cache），减少不必要的请求。\n\n**③ 服务端：**搜索建议通常使用 Trie 树、倒排索引或 Elasticsearch 的 Completion Suggester 来实现高性能的前缀匹配。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-11",
+      "title": "请详细说明微信扫码登录的完整流程和背后发生的原理",
+      "answer_md": "### 整体架构\n\n微信扫码登录基于 OAuth 2.0 授权码模式，涉及四个参与方：用户浏览器（PC 端）、用户手机微信客户端、第三方应用服务器、微信开放平台服务器。\n\n### 完整流程详解\n\n**第一阶段——生成二维码：**\n\n① 用户在 PC 端网站点击'微信登录'按钮。\n\n② 网站后端向微信开放平台请求一个唯一的登录凭证（UUID），同时生成一个包含该 UUID 和 OAuth 授权 URL 的二维码展示给用户。\n\n**③ 二维码内容实质上是一个 URL：**https://open.weixin.qq.com/connect/qrconnect?appid=xxx&redirect_uri=xxx&scope=snsapi_login&state=xxx。\n\n④ PC 端同时开始轮询（Long Polling 或 WebSocket）微信服务器，查询该 UUID 对应的扫码状态。\n\n**第二阶段——扫码确认：**\n\n⑤ 用户打开手机微信扫描二维码。微信客户端解析出 URL，向微信服务器发送请求，携带用户的登录态（微信 App 本身已登录）。\n\n⑥ 微信服务器将二维码状态更新为'已扫描'。PC 端轮询感知到状态变化，页面显示'已扫描，请在手机上确认'以及用户的微信头像。\n\n⑦ 用户在手机微信上点击'确认登录'。微信服务器将二维码状态更新为'已确认'，同时生成一个临时授权码（Authorization Code）。\n\n**第三阶段——获取用户信息：**\n\n⑧ PC 端轮询感知到'已确认'状态，获取到授权码 code。（或者微信重定向到 redirect_uri 并带上 code）。\n\n⑨ 网站后端用 code + AppID + AppSecret 向微信服务器换取 Access Token 和 Refresh Token。\n\n⑩ 网站后端用 Access Token 调用微信用户信息接口，获取用户的 OpenID、昵称、头像等信息。\n\n⑪ 网站后端根据 OpenID 查找或创建本地用户账号，生成自己的登录态（Session/JWT），返回给 PC 端浏览器，完成登录。\n\n### 安全机制\n\n**① state 参数防 CSRF：**网站在生成二维码时附带一个随机 state 值，回调时校验一致性，防止请求伪造。\n\n**② 授权码一次性有效：**code 只能使用一次且有效期很短（通常 5 分钟），降低泄露风险。\n\n**③ 二维码有效期：**UUID 通常 5 分钟过期，过期需重新生成。\n\n**④ 手机端确认机制：**扫码后必须在手机上二次确认，防止误扫和钓鱼。\n\n**⑤ AppSecret 保密：**code 换 Token 的操作在服务端完成，AppSecret 不暴露在前端。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-12",
+      "title": "在微服务架构中，服务发现和负载均衡是如何实现的？",
+      "answer_md": "### 服务发现的本质\n\n在微服务架构中，服务实例数量动态变化（弹性伸缩、故障替换），调用方无法硬编码服务地址。服务发现解决的核心问题是：让调用方能够动态获取可用的服务实例列表。\n\n### 服务发现的两种模式\n\n**客户端发现模式：**服务消费者直接从注册中心查询可用实例列表，然后自己选择一个实例发起调用。代表：Netflix Eureka + Ribbon、Nacos + Spring Cloud LoadBalancer。优点是去中心化、无单点瓶颈；缺点是客户端逻辑复杂。\n\n**服务端发现模式：**调用方请求一个负载均衡器（如 Nginx、AWS ALB/NLB、Kubernetes Service），由负载均衡器查询注册中心并转发请求。调用方无需感知具体实例。优点是客户端简单；缺点是多一跳网络延迟，负载均衡器可能成为瓶颈。\n\n### 负载均衡策略\n\n**常见的负载均衡算法：**\n\n**① 轮询（Round Robin）：**按顺序逐个分配，适合实例性能一致的场景。\n\n**② 加权轮询（Weighted Round Robin）：**高性能实例分配更多请求。\n\n**③ 随机（Random）：**简单高效，在实例数较多时效果接近轮询。\n\n**④ 最少连接数（Least Connections）：**将请求分配给当前连接数最少的实例，适合请求处理时间不均匀的场景。\n\n**⑤ 一致性哈希（Consistent Hashing）：**根据请求特征（如用户 ID）哈希到固定实例，实现会话亲和性，适合有状态服务或缓存场景。\n\n**⑥ P2C（Power of Two Choices）：**随机选两个实例，选负载较低的那个。gRPC 默认使用此算法。\n\n### Kubernetes 中的实现\n\nKubernetes 中服务发现通过 Service + Endpoints + CoreDNS 实现。Pod 注册到 Endpoints，Service 作为稳定的访问入口，kube-proxy 实现四层负载均衡（iptables/IPVS 模式）。Service Mesh（如 Istio/Envoy）则在七层实现更精细的流量管理。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-13",
+      "title": "服务注册中心（如 Nacos、Consul）是如何工作的？服务实例如何注册和保活（如通过心跳机制）？",
+      "answer_md": "### 注册中心的核心功能\n\n**① 服务注册：**服务启动时向注册中心上报自己的地址、端口、元数据等信息。\n\n**② 服务发现：**调用方从注册中心查询目标服务的可用实例列表。\n\n**③ 健康检查：**定期检测服务实例是否存活，自动剔除不健康的实例。\n\n**④ 变更通知：**服务实例变更时推送通知给订阅方（Push 或 Pull + 长轮询）。\n\n### Nacos 的工作机制\n\n**注册：**服务启动后通过 Nacos Client SDK 发送 HTTP/gRPC 注册请求，携带 serviceName、IP、port、clusterName、weight 等信息。Nacos Server 将实例信息存储在内存（Distro 协议同步到其他节点）。\n\n**心跳保活：**临时实例（Ephemeral Instance）由客户端主动发送心跳，默认每 5 秒一次。Nacos Server 如果超过 15 秒未收到心跳则标记为不健康，超过 30 秒则自动剔除。永久实例（Persistent Instance）由 Nacos Server 主动探测（TCP/HTTP 健康检查）。\n\n**服务发现：**消费方通过 Nacos Client 订阅服务，Nacos 使用 UDP Push + 客户端定时 Pull 的组合机制保证实例列表的实时性和最终一致性。\n\n### Consul 的工作机制\n\nConsul 基于 Raft 共识协议保证注册数据的强一致性。服务注册后，Consul Agent 通过以下方式进行健康检查：\n\n**• Script Check：**定时执行自定义脚本。\n\n**• HTTP Check：**定时 GET 指定 URL。\n\n**• TCP Check：**定时建立 TCP 连接。\n\n**• gRPC Check：**调用 gRPC Health 接口。\n\n**• TTL Check：**服务端定期上报心跳，超时标记为不健康。\n\nConsul 还支持 DNS 接口和 HTTP API 两种服务发现方式，以及多数据中心的 WAN Gossip 协议同步。\n\n### 对比总结\n\n**Nacos：**AP 模式（默认临时实例）/ CP 模式（永久实例），兼容 Spring Cloud / Dubbo 生态，同时支持配置管理。\n\n**Consul：**CP 模式（Raft），支持多数据中心、丰富的健康检查方式，Go 生态为主。\n\n**Eureka：**AP 模式，简单易用但功能较少，Netflix 已停止维护。\n\n**ZooKeeper：**CP 模式（ZAB 协议），早期 Dubbo 的默认注册中心，不是为服务发现设计的。\n\n**etcd：**CP 模式（Raft），Kubernetes 的底层存储，适合作为基础设施级注册中心。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-14",
+      "title": "HTTP 协议中 GET 和 POST 请求的区别？（深入补充）",
+      "answer_md": "### 说明\n\n此题与第 8 题有重叠，以下从更深的角度进行补充。\n\n### RFC 规范层面的区别\n\n根据 RFC 7231，GET 方法的语义是安全（Safe）且幂等（Idempotent）的，意味着它不应该对服务器状态产生副作用。POST 则明确表示'提交数据给目标资源处理'，可能导致新资源的创建或已有资源的修改。这是语义约束，不是技术限制——实践中完全可以用 GET 请求修改数据，但这违反了 HTTP 规范，会导致缓存、爬虫、预加载等机制出现意外行为。\n\n### 从 TCP 层面看的差异\n\n在某些浏览器和 HTTP 库的实现中（如旧版 Firefox），POST 请求会分两步发送：先发送 Header（包含 Expect: 100-continue），等待服务器返回 100 Continue 后再发送 Body。但这不是 HTTP 规范的强制要求。GET 请求通常一次发送完毕，因为没有 Body（即使 RFC 不禁止 GET 带 Body，但实践中几乎所有框架都会忽略 GET 的 Body）。\n\n### 从浏览器行为层面看\n\n① GET 请求可以被缓存，POST 不会。\n\n② GET 请求会保留在浏览器历史记录和服务器日志中（URL 包含参数），POST 不会。\n\n③ GET 请求可以被收藏为书签，POST 不能。\n\n④ 浏览器的 <a> 标签、<img> 标签、CSS @import 等都是 GET 请求。\n\n⑤ 点击浏览器回退按钮时，GET 请求会被重新发送（可能命中缓存），POST 请求浏览器会弹出确认框提示'重新提交表单'。\n\n### 面试终极回答\n\nGET 和 POST 在 HTTP 规范层面是两种不同语义的方法：GET 用于获取资源、安全幂等、参数在 URL 中；POST 用于提交数据、非安全非幂等、参数在 Body 中。但从 TCP 传输层面看，它们本质上没有区别——都是 TCP 报文，区别在于 HTTP 协议层面对它们的语义约束和浏览器/中间件对它们的差异化处理。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-15",
+      "title": "SSE 的局限性",
+      "answer_md": "### 什么是 SSE\n\nSSE（Server-Sent Events）是一种允许服务器通过 HTTP 持久连接向客户端单向推送事件流的技术。基于 text/event-stream MIME 类型，使用简单的文本格式传输数据。\n\n### SSE 的局限性\n\n**① 单向通信：**SSE 只能服务器向客户端推送，客户端要发送数据必须通过单独的 HTTP 请求。不适合需要频繁双向通信的场景。\n\n**② 连接数限制：**浏览器对同一域名的 SSE 连接数有严格限制。HTTP/1.1 下，Chrome/Firefox 等浏览器对同域名最多只允许 6 个并发连接（所有标签页共享），SSE 的长连接会长期占用其中一个。HTTP/2 下此限制有所缓解（默认 100 个流），但仍需注意。\n\n**③ 仅支持文本：**SSE 只支持 UTF-8 文本数据传输，不支持二进制数据（WebSocket 支持二进制帧）。传输二进制数据需要先 Base64 编码，增加 33% 的体积。\n\n**④ 断线重连的局限：**SSE 原生支持自动重连（浏览器默认 3 秒后重试），但重连间隔不可精细控制，且在弱网环境下可能产生大量无效重连请求。\n\n**⑤ 不支持自定义请求头：**SSE 使用 EventSource API 发起连接，无法设置自定义的 HTTP 请求头（如 Authorization），这使得 Token 认证需要通过 URL 参数传递（不够安全）。虽然可以用 fetch + ReadableStream 自行实现 SSE 解析来绕过，但增加了复杂度。\n\n**⑥ 代理和中间件兼容性：**一些反向代理（如旧版 Nginx）和企业级防火墙可能会缓冲 SSE 响应数据，导致消息无法实时到达客户端。需要额外配置（如 X-Accel-Buffering: no）。\n\n**⑦ 无内置消息确认机制：**SSE 没有 ACK 机制，服务器不知道客户端是否真正收到了消息。需要在应用层自行实现。\n\n**⑧ 不支持跨标签页共享：**每个标签页独立建立 SSE 连接，无法像 SharedWorker 那样共享一个连接（需要额外封装）。\n\n### 什么时候仍然选择 SSE\n\n尽管有以上局限，SSE 在以下场景中仍是最佳选择：LLM/AI 模型的流式输出（如 ChatGPT 的打字机效果）、新闻/通知推送、股票行情、日志流监控、构建进度推送等纯服务器推送场景。它比 WebSocket 更轻量，不需要协议升级，天然兼容 HTTP 基础设施。",
+      "quiz": null
+    },
+    {
+      "id": "网络基础-16",
+      "title": "MCP 通信方式（SSE / stdio 等）",
+      "answer_md": "### 什么是 MCP\n\nMCP（Model Context Protocol，模型上下文协议）是由 Anthropic 提出的开放标准协议，用于标准化 AI 模型（LLM）与外部工具、数据源、服务之间的通信方式。MCP 采用 JSON-RPC 2.0 作为消息编码格式，定义了客户端（通常是 AI 应用/Agent）与服务器（提供工具/数据能力）之间的标准化交互协议。\n\n### MCP 的三种传输方式\n\n**MCP 协议目前定义了三种标准传输机制：**\n\n### ① stdio（标准输入输出）\n\n**原理：**MCP 客户端将 MCP 服务器作为子进程启动，通过 stdin/stdout 进行 JSON-RPC 消息的双向通信。消息以换行符分隔，不能包含内嵌换行。\n\n**特点：**\n\n• 本地通信，零网络开销，延迟极低（微秒级）。\n\n• 不需要网络配置，安全性高（进程级隔离）。\n\n• 适合 CLI 工具、本地文件操作、代码分析等场景。\n\n• 每个客户端启动独立的服务器进程，不支持多客户端共享。\n\n• Claude Desktop、Cursor 等 IDE 工具中的本地 MCP 集成主要使用 stdio。\n\n**典型配置：**\n\n**{ 'mcpServers':** { 'example': { 'command': 'node', 'args': ['server.js'] } } }\n\n### ② SSE（Server-Sent Events）—— 已被标记为 Legacy\n\n**原理：**MCP 服务器提供两个 HTTP 端点——GET /sse 用于建立 SSE 长连接（服务器向客户端推送），POST /messages 用于客户端向服务器发送请求。\n\n**特点：**\n\n• 支持远程通信，可部署在不同机器上。\n\n• 支持多客户端并发连接。\n\n• 基于 HTTP 协议，可使用标准的 HTTP 认证和中间件。\n\n• 需要维护两个端点，架构较复杂。\n\n**重要说明：**在 2025 年 3 月发布的 MCP 规范更新中，SSE 传输方式已被标记为 Legacy（遗留方案），被 Streamable HTTP 取代。现有 SSE 实现仍被支持以保持向后兼容。\n\n### ③ Streamable HTTP（推荐的远程传输方式）\n\n**原理：**使用单一的 HTTP 端点处理所有 MCP 通信。客户端通过 HTTP POST 发送 JSON-RPC 请求，服务器可以选择：a) 直接返回 JSON 响应（简单请求-响应模式）；b) 返回 SSE 流来传输多个消息或通知（流式模式）。客户端也可通过 HTTP GET 建立 SSE 连接以接收服务器主动推送。\n\n**特点：**\n\n• 单一端点，架构更简洁。\n\n• 灵活性高——既支持简单的请求-响应，也支持流式通信。\n\n• 支持 Session 管理（通过 Mcp-Session-Id 头）。\n\n• 支持标准 HTTP 认证（OAuth 等）。\n\n• 可水平扩展，适合云部署。\n\n• 是 MCP 规范推荐的远程通信标准。\n\n### 如何选择\n\n本地工具/CLI 集成 → stdio（简单高效）。\n\n远程服务/云部署/多客户端 → Streamable HTTP（推荐）。\n\n向后兼容已有 SSE 服务器 → SSE（Legacy，建议逐步迁移）。\n\n**面试加分：**MCP 的传输层是可插拔的，开发者也可以实现自定义传输方式，只要遵循双向消息交换的 Transport 接口即可。例如 Cloudflare 还实现了基于 Durable Objects 的 RPC 传输方式，无需经过公网。",
+      "quiz": null
+    }
+  ]
+}
