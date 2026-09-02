@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentInterview · 多邻国式刷 Agent 面试题的学习 H5</title>
+<meta name="description" content="148 道 AI 应用开发面试题（Agent / RAG，14 章），蛇形闯关地图 + 学习卡片 + 四选一测验，支持任意 OpenAI 兼容大模型 API。纯静态、无构建、开箱即用。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2358CC02'/%3E%3Cpath d='M18 33l10 10 20-22' stroke='%23ffffff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
+      colors: {
+        paper:   '#F8F9FA',
+        card:    '#FDFDFC',
+        ink:     '#1A1A1A',
+        sub:     '#52525B',
+        faint:   '#71717A',
+        duo: {
+          green:      '#58CC02',
+          greendeep:  '#3E9902',
+          greentext:  '#2F7D02',
+          greenink:   '#123F00',
+          greensoft:  '#EAF7D8',
+          gold:       '#FFC800',
+          goldsoft:   '#FFF3D6',
+          goldtext:   '#8A5A00',
+          orange:     '#FF9600',
+          orangetext: '#B45309',
+          flamesoft:  '#FFECEC',
+          redtext:    '#B91C1C',
+        },
+      },
+      boxShadow: {
+        card: '0 2px 8px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.06)',
+        pop:  '0 4px 16px rgba(0,0,0,.08), 0 20px 48px rgba(0,0,0,.10)',
+        lift: '0 8px 20px rgba(0,0,0,.10), 0 24px 56px rgba(0,0,0,.10)',
+      },
+      maxWidth: { prose: '65ch' },
+    },
+  },
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.is-visible { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .faq-chevron { transform: rotate(180deg); }
+  .faq-chevron { transition: transform .2s ease; }
+</style>
+</head>
+
+<body class="bg-paper text-ink font-sans">
+
+<!-- ======================= TOP NAV ======================= -->
+<header class="sticky top-0 z-50 border-b border-black/5 bg-paper/85 backdrop-blur-md">
+  <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6 lg:px-8">
+    <a href="#top" class="flex items-center gap-2.5">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="16" fill="#58CC02"/>
+        <path d="M18 33l10 10 20-22" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <span class="leading-tight">
+        <span class="block text-base font-extrabold tracking-tight text-ink">AgentInterview</span>
+        <span class="block text-[11px] font-medium text-sub">Agent 面试通关</span>
+      </span>
+    </a>
+    <div class="hidden items-center gap-7 text-sm font-semibold text-sub md:flex">
+      <a href="#features" class="transition-all hover:text-duo-greentext">功能特性</a>
+      <a href="#gallery" class="transition-all hover:text-duo-greentext">界面预览</a>
+      <a href="#quickstart" class="transition-all hover:text-duo-greentext">快速上手</a>
+      <a href="#compare" class="transition-all hover:text-duo-greentext">方案对比</a>
+      <a href="#faq" class="transition-all hover:text-duo-greentext">FAQ</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener"
+         class="hidden items-center gap-2 rounded-2xl border-b-4 border-zinc-200 bg-card px-4 py-2 text-sm font-bold text-ink transition-all hover:-translate-y-0.5 hover:bg-zinc-50 active:translate-y-0.5 active:border-b-0 sm:inline-flex">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+      <a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-1.5 rounded-2xl border-b-4 border-duo-greendeep bg-duo-green px-5 py-2 text-sm font-extrabold text-duo-greenink transition-all hover:-translate-y-0.5 hover:bg-[#63DB06] active:translate-y-0.5 active:border-b-0">
+        开始刷题 →
+      </a>
+    </div>
+  </nav>
+</header>
+
+<main id="top">
+
+<!-- ======================= HERO ======================= -->
+<section class="relative overflow-hidden">
+  <div class="pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-duo-greensoft blur-3xl" aria-hidden="true"></div>
+  <div class="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-duo-goldsoft blur-3xl" aria-hidden="true"></div>
+
+  <div class="relative mx-auto grid max-w-7xl items-center gap-16 px-6 pb-20 pt-14 lg:grid-cols-2 lg:px-8 lg:pb-28 lg:pt-20">
+    <div class="reveal">
+      <span class="inline-flex items-center gap-2 rounded-full bg-duo-greensoft px-4 py-1.5 text-xs font-bold text-duo-greentext">
+        🟢 多邻国式刷题 H5 · 纯静态 · 开源免费 · 开箱即用
+      </span>
+      <h1 class="mt-6 text-4xl font-black leading-[1.15] tracking-tight text-ink sm:text-5xl lg:text-6xl">
+        像玩游戏一样,<br>
+        <span class="text-duo-greentext">通关</span> Agent 面试
+      </h1>
+      <p class="mt-6 max-w-prose text-base leading-7 text-sub sm:text-lg sm:leading-8">
+        把 <strong class="font-bold text-ink">148 道 AI 应用开发面试题（Agent / RAG，14 章）</strong>变成蛇形闯关地图 + 学习卡片 + 四选一测验，
+        支持接入任意 OpenAI 兼容大模型 API 做 AI 解读与批量生成选择题。纯静态、无构建、开箱即用。
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 rounded-2xl border-b-4 border-duo-greendeep bg-duo-green px-8 py-4 text-base font-extrabold text-duo-greenink shadow-card transition-all hover:-translate-y-0.5 hover:bg-[#63DB06] active:translate-y-0.5 active:border-b-0">
+          开始刷题 →
+        </a>
+        <a href="#gallery"
+           class="inline-flex items-center gap-2 rounded-2xl border-b-4 border-zinc-200 bg-card px-8 py-4 text-base font-extrabold text-ink transition-all hover:-translate-y-0.5 hover:bg-zinc-50 active:translate-y-0.5 active:border-b-0">
+          先看界面预览 ↓
+        </a>
+      </div>
+      <dl class="mt-10 grid max-w-lg grid-cols-3 gap-4">
+        <div class="rounded-2xl bg-card p-4 text-center shadow-card">
+          <dt class="text-xs font-semibold text-faint">真题题库</dt>
+          <dd class="mt-1 text-2xl font-black text-duo-greentext">148 题</dd>
+        </div>
+        <div class="rounded-2xl bg-card p-4 text-center shadow-card">
+          <dt class="text-xs font-semibold text-faint">结构化章节</dt>
+          <dd class="mt-1 text-2xl font-black text-duo-greentext">14 章</dd>
+        </div>
+        <div class="rounded-2xl bg-card p-4 text-center shadow-card">
+          <dt class="text-xs font-semibold text-faint">价格</dt>
+          <dd class="mt-1 text-2xl font-black text-duo-orangetext">¥0 开源</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Hero 可视化：真截图 + 手机壳 + 悬浮徽章 -->
+    <div class="reveal relative mx-auto w-fit">
+      <div class="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[520px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[3rem] bg-duo-greensoft blur-2xl" aria-hidden="true"></div>
+      <div class="w-[270px] rotate-3 transition-all duration-500 hover:rotate-1 sm:w-[300px]">
+        <div class="rounded-[2.8rem] border border-black/10 bg-[#22303C] p-2.5 shadow-pop">
+          <div class="overflow-hidden rounded-[2.2rem] bg-paper">
+            <a href="assets/01-path.png" target="_blank" rel="noopener" title="点击查看原图">
+              <img src="assets/01-path.png" alt="蛇形学习路径：章节按序解锁的闯关地图"
+                   class="h-[540px] w-full object-cover object-top sm:h-[580px]" loading="eager">
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="absolute -right-6 top-16 -rotate-6 rounded-2xl bg-card px-4 py-3 shadow-lift sm:-right-12">
+        <p class="text-lg font-black text-duo-redtext">🔥 连续 7 天</p>
+        <p class="text-[11px] font-semibold text-faint">保持学习火苗</p>
+      </div>
+      <div class="absolute -left-4 bottom-20 rotate-3 rounded-2xl bg-card px-4 py-3 shadow-lift sm:-left-12">
+        <p class="text-lg font-black text-duo-goldtext">⚡ +10 XP</p>
+        <p class="text-[11px] font-semibold text-faint">经验值持续上涨</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= LOGO WALL / 生态兼容 ======================= -->
+<section class="border-y border-black/5 bg-card/70">
+  <div class="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+    <p class="reveal text-center text-sm font-semibold text-faint">
+      接入任意 <span class="text-duo-greentext">OpenAI 兼容</span>大模型 API —— AI 解读、批量生成选择题都能用
+    </p>
+    <ul class="reveal mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-3">
+      <li class="rounded-full bg-paper px-5 py-2 text-sm font-bold text-ink shadow-card">OpenAI</li>
+      <li class="rounded-full bg-paper px-5 py-2 text-sm font-bold text-ink shadow-card">DeepSeek</li>
+      <li class="rounded-full bg-paper px-5 py-2 text-sm font-bold text-ink shadow-card">GLM</li>
+      <li class="rounded-full bg-paper px-5 py-2 text-sm font-bold text-ink shadow-card">Ollama</li>
+      <li class="rounded-full bg-paper px-5 py-2 text-sm font-bold text-ink shadow-card">vLLM</li>
+      <li class="rounded-full bg-duo-greensoft px-5 py-2 text-sm font-bold text-duo-greentext shadow-card">任意兼容服务…</li>
+    </ul>
+    <p class="reveal mt-4 text-center text-xs font-medium text-faint">API Key 仅存本机浏览器，请求直连你配置的服务</p>
+  </div>
+</section>
+
+<!-- ======================= 痛点 vs 解决方案 ======================= -->
+<section class="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
+  <div class="reveal mx-auto max-w-3xl text-center">
+    <p class="text-sm font-extrabold uppercase tracking-widest text-duo-orangetext">核心痛点</p>
+    <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">备考 Agent 岗的你，是否也遇到过？</h2>
+  </div>
+
+  <div class="mt-12 grid gap-8 lg:grid-cols-2">
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card sm:p-10">
+      <h3 class="text-lg font-extrabold text-duo-redtext">传统备考方式 😩</h3>
+      <ul class="mt-6 space-y-4">
+        <li class="flex gap-3 text-[15px] leading-6 text-sub"><span class="mt-0.5 shrink-0 font-bold text-duo-redtext">❌</span>面试八股看完就忘，没有「回忆→验证」的闭环</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-sub"><span class="mt-0.5 shrink-0 font-bold text-duo-redtext">❌</span>题库散落在 markdown 文档里，只能从头翻到尾，无法刷</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-sub"><span class="mt-0.5 shrink-0 font-bold text-duo-redtext">❌</span>不知道自己到底记住了没有，缺乏即时判题反馈</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-sub"><span class="mt-0.5 shrink-0 font-bold text-duo-redtext">❌</span>想让 AI 帮忙解读考点，要开好几个网页来回粘贴</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-sub"><span class="mt-0.5 shrink-0 font-bold text-duo-redtext">❌</span>刷题进度没处追踪，不知道哪章薄弱</li>
+      </ul>
+    </div>
+    <div class="reveal rounded-3xl bg-duo-greensoft p-8 shadow-card sm:p-10">
+      <h3 class="text-lg font-extrabold text-duo-greentext">AgentInterview 的答案 🎉</h3>
+      <ul class="mt-6 space-y-4">
+        <li class="flex gap-3 text-[15px] leading-6 text-ink"><span class="mt-0.5 shrink-0 font-bold text-duo-greentext">✅</span>学习卡片「先想后看」：先自己回忆，再展开参考答案，记忆留存率更高</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-ink"><span class="mt-0.5 shrink-0 font-bold text-duo-greentext">✅</span>148 题 14 章结构化题库，蛇形路径按序解锁，像玩游戏一样刷完</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-ink"><span class="mt-0.5 shrink-0 font-bold text-duo-greentext">✅</span>四选一章节测验，即时判题 + 解析，答错自动进错题本</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-ink"><span class="mt-0.5 shrink-0 font-bold text-duo-greentext">✅</span>AI 解读一键生成：考点提炼 + 回答框架 + 常见追问 + 易错点</li>
+        <li class="flex gap-3 text-[15px] leading-6 text-ink"><span class="mt-0.5 shrink-0 font-bold text-duo-greentext">✅</span>XP 经验值、连续学习天数、总进度环、各章进度条，薄弱章节一目了然</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= FEATURES ======================= -->
+<section id="features" class="bg-card/70 py-20 lg:py-28">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="text-sm font-extrabold uppercase tracking-widest text-duo-greentext">功能特性</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">六个模块,组一条完整的刷题闭环</h2>
+      <p class="mx-auto mt-4 max-w-prose text-base leading-7 text-sub">从闯关地图到错题复盘,每个环节都为「记得住、刷得动」而设计。</p>
+    </div>
+
+    <div class="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-greensoft text-2xl">🗺️</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">学习路径</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">蛇形章节节点地图，按顺序解锁（学过上一章任意一题即解锁下一章），也可在设置中一键解锁全部章节。每章有独立图标与配色。</p>
+      </div>
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-goldsoft text-2xl">📖</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">学习模式</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">每轮 8 题，先想后看。点击「查看参考答案」展开完整 markdown 答案，代码块、表格、图片均正常渲染。支持返回上一题恢复状态。</p>
+      </div>
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-flamesoft text-2xl">🎯</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">章节测验</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">四选一选择题，即时判题 + 一句话解析 + 错题展示参考答案。正确率 ≥60% 记为通过，通过后解锁下一章。</p>
+      </div>
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-greensoft text-2xl">🤖</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">AI 解读（可选）</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">配置任意 OpenAI 兼容 API（baseURL / model / apiKey），学习页一键生成「考点 + 回答框架 + 常见追问 + 易错点」四段式解读。API Key 仅存本机浏览器。</p>
+      </div>
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-goldsoft text-2xl">🚀</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">批量生成选择题（可选）</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">前端设置页逐题调用 LLM 生成四选一；终端脚本 <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">tools/gen_quiz.py</code> 逐题落盘、断点续跑（中断后重跑自动跳过已生成），支持 <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">--force</code> 重新生成。生成内容自动清洗与校验。</p>
+      </div>
+      <div class="reveal rounded-3xl bg-card p-8 shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-flamesoft text-2xl">📊</div>
+        <h3 class="mt-5 text-lg font-extrabold text-ink">统计与错题本</h3>
+        <p class="mt-2 text-[15px] leading-6 text-sub">总进度环、XP、连续学习天数、各章进度条。答错的题自动收进错题本，可查看详情与参考答案，重点攻克薄弱环节。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= HOW IT WORKS ======================= -->
+<section id="how" class="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
+  <div class="reveal mx-auto max-w-3xl text-center">
+    <p class="text-sm font-extrabold uppercase tracking-widest text-duo-greentext">学习闭环</p>
+    <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">学 → 测 → 复,三步上瘾</h2>
+  </div>
+
+  <ol class="mt-14 grid gap-10 md:grid-cols-3 md:gap-6">
+    <li class="reveal relative text-center">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-b-4 border-duo-greendeep bg-duo-green text-2xl font-black text-duo-greenink shadow-card">1</div>
+      <h3 class="mt-5 text-xl font-extrabold text-ink">学 · 先想后看</h3>
+      <p class="mx-auto mt-2 max-w-prose px-4 text-[15px] leading-6 text-sub">每轮 8 题的学习卡片：先自己回忆，再展开参考答案对照，markdown 代码块、表格完整渲染，记忆留存率更高。</p>
+    </li>
+    <li class="reveal relative text-center">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-b-4 border-duo-greendeep bg-duo-green text-2xl font-black text-duo-greenink shadow-card">2</div>
+      <h3 class="mt-5 text-xl font-extrabold text-ink">测 · 即时判题</h3>
+      <p class="mx-auto mt-2 max-w-prose px-4 text-[15px] leading-6 text-sub">四选一章节测验，答完立刻判题 + 一句话解析，正确率 ≥60% 通过并解锁下一章，闯关感拉满。</p>
+    </li>
+    <li class="reveal relative text-center">
+      <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-b-4 border-duo-greendeep bg-duo-green text-2xl font-black text-duo-greenink shadow-card">3</div>
+      <h3 class="mt-5 text-xl font-extrabold text-ink">复 · 错题攻克</h3>
+      <p class="mx-auto mt-2 max-w-prose px-4 text-[15px] leading-6 text-sub">答错自动收进错题本，配合 XP、连续天数与各章进度环，薄弱章节一目了然，针对性复盘。</p>
+    </li>
+  </ol>
+</section>
+
+<!-- ======================= 界面预览 · 12 张截图画廊 ======================= -->
+<section id="gallery" class="bg-card/70 py-20 lg:py-28">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="text-sm font-extrabold uppercase tracking-widest text-duo-orangetext">界面预览</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">12 张真实截图,一眼看懂全部玩法</h2>
+      <p class="mx-auto mt-4 max-w-prose text-base leading-7 text-sub">以下截图全部来自 <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">assets/</code>，固定高度裁切对齐，点击任意一张可在新标签页查看原图。</p>
+    </div>
+
+    <div class="mt-14 grid grid-cols-1 gap-8 md:grid-cols-3">
+      <figure class="reveal">
+        <a href="assets/01-path.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/01-path.png" alt="蛇形学习路径，章节按序解锁" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">01</span>
+          <span class="text-sm font-semibold leading-5 text-sub">蛇形学习路径，章节按序解锁</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/02-chapter-pop.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/02-chapter-pop.png" alt="章节入口弹层" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">02</span>
+          <span class="text-sm font-semibold leading-5 text-sub">章节入口弹层</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/03-learn.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/03-learn.png" alt="学习卡片，先想后看" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">03</span>
+          <span class="text-sm font-semibold leading-5 text-sub">学习卡片，先想后看</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/04-learn-answer.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/04-learn-answer.png" alt="参考答案 markdown 渲染" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">04</span>
+          <span class="text-sm font-semibold leading-5 text-sub">参考答案 markdown 渲染</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/05-quiz.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/05-quiz.png" alt="章节测验四选一" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">05</span>
+          <span class="text-sm font-semibold leading-5 text-sub">章节测验四选一</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/06-quiz-judge.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/06-quiz-judge.png" alt="判题反馈与解析" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">06</span>
+          <span class="text-sm font-semibold leading-5 text-sub">判题反馈与解析</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/07-mistakes.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/07-mistakes.png" alt="错题本" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">07</span>
+          <span class="text-sm font-semibold leading-5 text-sub">错题本</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/08-mistake-detail.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/08-mistake-detail.png" alt="错题详情" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">08</span>
+          <span class="text-sm font-semibold leading-5 text-sub">错题详情</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/09-stats.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/09-stats.png" alt="统计：进度环 + XP + 连续天数" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">09</span>
+          <span class="text-sm font-semibold leading-5 text-sub">统计：进度环 + XP + 连续天数</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/10-settings.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/10-settings.png" alt="设置：LLM 配置 + 深色模式" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">10</span>
+          <span class="text-sm font-semibold leading-5 text-sub">设置：LLM 配置 + 深色模式</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/11-ai-explain.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/11-ai-explain.png" alt="AI 解读：考点/框架/追问/易错点" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">11</span>
+          <span class="text-sm font-semibold leading-5 text-sub">AI 解读：考点 / 框架 / 追问 / 易错点</span>
+        </figcaption>
+      </figure>
+      <figure class="reveal">
+        <a href="assets/12-dark.png" target="_blank" rel="noopener" class="group block overflow-hidden rounded-3xl shadow-card transition-all hover:-translate-y-1 hover:shadow-pop">
+          <img src="assets/12-dark.png" alt="暗色模式" loading="lazy"
+               class="h-96 w-full object-cover object-top transition-all duration-300 group-hover:scale-[1.02]">
+        </a>
+        <figcaption class="mt-3 flex items-start gap-2.5 px-1">
+          <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-duo-greensoft text-xs font-black text-duo-greentext">12</span>
+          <span class="text-sm font-semibold leading-5 text-sub">暗色模式</span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 三步快速上手（替代 Pricing）======================= -->
+<section id="quickstart" class="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
+  <div class="grid items-center gap-12 lg:grid-cols-[1fr_1.2fr]">
+    <div class="reveal">
+      <p class="text-sm font-extrabold uppercase tracking-widest text-duo-greentext">三步快速上手</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">免费开源<br>两条命令开始刷题</h2>
+      <p class="mt-4 max-w-prose text-base leading-7 text-sub">无需注册、无需付费、无构建依赖。克隆下来起一个静态服务，打开浏览器就能刷。</p>
+      <ul class="mt-6 space-y-3">
+        <li class="flex items-center gap-3 text-[15px] font-semibold text-ink"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-duo-greensoft text-sm text-duo-greentext">✓</span>零注册 · 零付费</li>
+        <li class="flex items-center gap-3 text-[15px] font-semibold text-ink"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-duo-greensoft text-sm text-duo-greentext">✓</span>纯静态，任意静态服务器都能跑</li>
+        <li class="flex items-center gap-3 text-[15px] font-semibold text-ink"><span class="flex h-7 w-7 items-center justify-center rounded-full bg-duo-greensoft text-sm text-duo-greentext">✓</span>进度数据全部保存在本机</li>
+      </ul>
+    </div>
+
+    <div class="reveal overflow-hidden rounded-3xl bg-[#1B2733] shadow-pop">
+      <div class="flex items-center gap-2 border-b border-white/10 px-6 py-4">
+        <span class="h-3 w-3 rounded-full bg-[#FF5F57]"></span>
+        <span class="h-3 w-3 rounded-full bg-duo-gold"></span>
+        <span class="h-3 w-3 rounded-full bg-duo-green"></span>
+        <span class="ml-3 font-mono text-xs text-[#8B98A5]">terminal — bash</span>
+      </div>
+      <div class="space-y-5 px-6 py-6 font-mono text-[13px] leading-6 sm:text-sm">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[#8B98A5]"># 1. 克隆仓库</p>
+            <p class="mt-1 break-all text-[#E6EDF3]"><span class="font-bold text-[#7EE34A]">$</span> git clone https://github.com/Samge0/AgentInterview.git</p>
+          </div>
+          <button data-copy="git clone https://github.com/Samge0/AgentInterview.git" class="shrink-0 rounded-lg border border-white/15 px-3 py-1 text-xs text-[#E6EDF3] transition-all hover:bg-white/10" type="button"><span>复制</span></button>
+        </div>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[#8B98A5]"># 2. 起本地服务</p>
+            <p class="mt-1 break-all text-[#E6EDF3]"><span class="font-bold text-[#7EE34A]">$</span> cd AgentInterview && python -m http.server 8377</p>
+          </div>
+          <button data-copy="cd AgentInterview && python -m http.server 8377" class="shrink-0 rounded-lg border border-white/15 px-3 py-1 text-xs text-[#E6EDF3] transition-all hover:bg-white/10" type="button"><span>复制</span></button>
+        </div>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[#8B98A5]"># 3. 浏览器打开，开始刷题</p>
+            <p class="mt-1 break-all text-[#E6EDF3]"><span class="font-bold text-[#7EE34A]">$</span> open http://127.0.0.1:8377</p>
+          </div>
+          <button data-copy="http://127.0.0.1:8377" class="shrink-0 rounded-lg border border-white/15 px-3 py-1 text-xs text-[#E6EDF3] transition-all hover:bg-white/10" type="button"><span>复制</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reveal mx-auto mt-8 flex max-w-3xl items-start gap-4 rounded-3xl bg-duo-goldsoft p-6 sm:p-8">
+    <span class="text-2xl" aria-hidden="true">⚠️</span>
+    <p class="text-[15px] leading-6 text-ink">
+      <strong class="font-extrabold">注意：</strong>直接双击 index.html（file:// 协议）无法加载 JSON 题库，务必通过 HTTP 服务访问（如 <code class="rounded bg-card px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">python -m http.server</code> 或任意静态服务器）。
+    </p>
+  </div>
+</section>
+
+<!-- ======================= 方案对比 ======================= -->
+<section id="compare" class="bg-card/70 py-20 lg:py-28">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="reveal mx-auto max-w-3xl text-center">
+      <p class="text-sm font-extrabold uppercase tracking-widest text-duo-orangetext">方案对比</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">为什么不用传统方式</h2>
+    </div>
+
+    <div class="reveal mt-12 overflow-x-auto rounded-3xl bg-card shadow-card">
+      <table class="w-full min-w-[640px] border-collapse text-left">
+        <thead>
+          <tr class="border-b border-black/5 text-sm font-extrabold text-ink">
+            <th scope="col" class="px-6 py-5">特性</th>
+            <th scope="col" class="px-6 py-5 text-center">markdown 文档翻看</th>
+            <th scope="col" class="px-6 py-5 text-center">八股文网站收藏夹</th>
+            <th scope="col" class="rounded-tr-3xl bg-duo-greensoft px-6 py-5 text-center text-duo-greentext">AgentInterview</th>
+          </tr>
+        </thead>
+        <tbody class="text-[15px] text-sub">
+          <tr class="border-b border-black/5">
+            <th scope="row" class="px-6 py-4 font-semibold text-ink">结构化题库 + 章节进度</th>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="px-6 py-4 text-center text-duo-orangetext">部分</td>
+            <td class="bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅ 14 章 148 题</td>
+          </tr>
+          <tr class="border-b border-black/5">
+            <th scope="row" class="px-6 py-4 font-semibold text-ink">主动回忆式学习（先想后看）</th>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅</td>
+          </tr>
+          <tr class="border-b border-black/5">
+            <th scope="row" class="px-6 py-4 font-semibold text-ink">即时判题 + 错题本</th>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="px-6 py-4 text-center text-duo-orangetext">部分</td>
+            <td class="bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅ 自动收录</td>
+          </tr>
+          <tr class="border-b border-black/5">
+            <th scope="row" class="px-6 py-4 font-semibold text-ink">AI 解读考点 / 追问链</th>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅ 一键生成</td>
+          </tr>
+          <tr class="border-b border-black/5">
+            <th scope="row" class="px-6 py-4 font-semibold text-ink">离线可用 / 数据在本机</th>
+            <td class="px-6 py-4 text-center font-bold text-duo-greentext">✅</td>
+            <td class="px-6 py-4 text-center text-duo-redtext">❌</td>
+            <td class="bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅ 纯静态 + localStorage</td>
+          </tr>
+          <tr>
+            <th scope="row" class="rounded-bl-3xl px-6 py-4 font-semibold text-ink">移动端适配 + 暗色模式</th>
+            <td class="px-6 py-4 text-center text-faint">—</td>
+            <td class="px-6 py-4 text-center text-faint">—</td>
+            <td class="rounded-br-3xl bg-duo-greensoft/50 px-6 py-4 text-center font-bold text-duo-greentext">✅</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 技术与隐私 ======================= -->
+<section class="mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
+  <div class="reveal mx-auto max-w-3xl text-center">
+    <p class="text-sm font-extrabold uppercase tracking-widest text-duo-greentext">技术与隐私</p>
+    <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">轻、透、稳:数据只属于你</h2>
+  </div>
+
+  <div class="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-greensoft text-2xl">🧩</div>
+      <h3 class="mt-5 text-lg font-extrabold text-ink">纯静态前端</h3>
+      <p class="mt-2 text-[15px] leading-6 text-sub">原生 JS + marked.js + DOMPurify（均本地引入），无构建、无依赖、无后端。</p>
+    </div>
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-goldsoft text-2xl">🗂️</div>
+      <h3 class="mt-5 text-lg font-extrabold text-ink">题库解耦</h3>
+      <p class="mt-2 text-[15px] leading-6 text-sub"><code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">data/questions/</code> 每章一个 JSON，加题/加章/改题直接编辑文件，<code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">tools/extract_questions.py</code> 可从源 markdown 重新抽取。</p>
+    </div>
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-flamesoft text-2xl">💾</div>
+      <h3 class="mt-5 text-lg font-extrabold text-ink">进度本地保存</h3>
+      <p class="mt-2 text-[15px] leading-6 text-sub">浏览器 localStorage，设置页可导出 JSON 备份。</p>
+    </div>
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-greensoft text-2xl">🛡️</div>
+      <h3 class="mt-5 text-lg font-extrabold text-ink">API Key 安全</h3>
+      <p class="mt-2 text-[15px] leading-6 text-sub">仅存本机浏览器，请求直接从浏览器发往所配置的服务。</p>
+    </div>
+    <div class="reveal rounded-3xl bg-card p-8 shadow-card">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-duo-goldsoft text-2xl">✨</div>
+      <h3 class="mt-5 text-lg font-extrabold text-ink">体验细节</h3>
+      <p class="mt-2 text-[15px] leading-6 text-sub">移动端适配（420px 设计基准）、深色模式、对比度按 WCAG AA 校验。</p>
+    </div>
+    <div class="reveal flex flex-col justify-center rounded-3xl bg-duo-greensoft p-8 shadow-card">
+      <p class="text-xl font-black leading-7 text-duo-greentext">🟢 无后端 · 无埋点<br>无数据上传</p>
+      <a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener" class="mt-4 inline-flex w-fit items-center gap-1.5 text-sm font-extrabold text-ink underline decoration-duo-green decoration-2 underline-offset-4 transition-all hover:text-duo-greentext">
+        查看源码验证 →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= FAQ ======================= -->
+<section id="faq" class="bg-card/70 py-20 lg:py-28">
+  <div class="mx-auto max-w-3xl px-6 lg:px-8">
+    <div class="reveal text-center">
+      <p class="text-sm font-extrabold uppercase tracking-widest text-duo-greentext">常见问题</p>
+      <h2 class="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">FAQ</h2>
+    </div>
+
+    <div class="mt-12 space-y-4">
+      <details class="reveal group rounded-3xl bg-card p-6 shadow-card" open>
+        <summary class="flex items-center justify-between gap-4">
+          <span class="text-base font-extrabold text-ink">双击 index.html 打不开题库？</span>
+          <svg class="faq-chevron h-5 w-5 shrink-0 text-duo-greentext" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.23 8.29a.75.75 0 0 1 .02-1.08Z" clip-rule="evenodd"/></svg>
+        </summary>
+        <p class="mt-4 max-w-prose text-[15px] leading-6 text-sub">file:// 协议无法 fetch JSON，请用 <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">python -m http.server</code> 或任意静态服务器。</p>
+      </details>
+      <details class="reveal group rounded-3xl bg-card p-6 shadow-card">
+        <summary class="flex items-center justify-between gap-4">
+          <span class="text-base font-extrabold text-ink">API Key 会上传吗？</span>
+          <svg class="faq-chevron h-5 w-5 shrink-0 text-duo-greentext" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.23 8.29a.75.75 0 0 1 .02-1.08Z" clip-rule="evenodd"/></svg>
+        </summary>
+        <p class="mt-4 max-w-prose text-[15px] leading-6 text-sub">不会。Key 仅存本机浏览器 localStorage，请求直连你配置的服务。</p>
+      </details>
+      <details class="reveal group rounded-3xl bg-card p-6 shadow-card">
+        <summary class="flex items-center justify-between gap-4">
+          <span class="text-base font-extrabold text-ink">支持哪些模型？</span>
+          <svg class="faq-chevron h-5 w-5 shrink-0 text-duo-greentext" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.23 8.29a.75.75 0 0 1 .02-1.08Z" clip-rule="evenodd"/></svg>
+        </summary>
+        <p class="mt-4 max-w-prose text-[15px] leading-6 text-sub">任意 OpenAI 兼容 API：本地 vLLM / Ollama、OpenAI、DeepSeek、GLM 等均可。</p>
+      </details>
+      <details class="reveal group rounded-3xl bg-card p-6 shadow-card">
+        <summary class="flex items-center justify-between gap-4">
+          <span class="text-base font-extrabold text-ink">想改题 / 加题？</span>
+          <svg class="faq-chevron h-5 w-5 shrink-0 text-duo-greentext" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.23 8.29a.75.75 0 0 1 .02-1.08Z" clip-rule="evenodd"/></svg>
+        </summary>
+        <p class="mt-4 max-w-prose text-[15px] leading-6 text-sub">直接编辑对应章节 JSON，或用 <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-[13px] text-duo-greentext">tools/</code> 下的脚本从源 markdown 重新抽取与生成。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= FINAL CTA ======================= -->
+<section class="mx-auto max-w-7xl px-6 pb-24 pt-4 lg:px-8">
+  <div class="reveal relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-duo-green to-[#3FC702] px-8 py-16 text-center shadow-pop sm:px-16 sm:py-20">
+    <div class="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/15 blur-2xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-duo-gold/30 blur-2xl" aria-hidden="true"></div>
+    <p class="relative text-4xl sm:text-5xl" aria-hidden="true">⭐</p>
+    <h2 class="relative mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-duo-greenink sm:text-4xl">觉得有用的话，去 GitHub 点个 Star 支持一下！</h2>
+    <p class="relative mx-auto mt-4 max-w-prose text-base font-semibold leading-7 text-[#1E4A00]">
+      纯静态 · 开源免费 · 148 题 14 章持续更新 —— clone 下来，今晚就开始刷。
+    </p>
+    <div class="relative mt-8 flex flex-wrap items-center justify-center gap-4">
+      <a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-2 rounded-2xl border-b-4 border-[#C9A400] bg-duo-gold px-8 py-4 text-base font-extrabold text-[#4A3600] transition-all hover:-translate-y-0.5 hover:bg-[#FFD133] active:translate-y-0.5 active:border-b-0">
+        ⭐ Star AgentInterview
+      </a>
+      <a href="#quickstart"
+         class="inline-flex items-center gap-2 rounded-2xl border-b-4 border-duo-greendeep bg-card px-8 py-4 text-base font-extrabold text-ink transition-all hover:-translate-y-0.5 hover:bg-zinc-50 active:translate-y-0.5 active:border-b-0">
+        查看快速上手
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer class="border-t border-black/5 bg-card/70">
+  <div class="mx-auto grid max-w-7xl gap-12 px-6 py-14 md:grid-cols-3 lg:px-8">
+    <div>
+      <div class="flex items-center gap-2.5">
+        <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="16" fill="#58CC02"/>
+          <path d="M18 33l10 10 20-22" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="text-base font-extrabold text-ink">AgentInterview</span>
+      </div>
+      <p class="mt-4 max-w-prose text-sm leading-6 text-sub">多邻国式刷 Agent 面试题的学习 H5。148 道 AI 应用开发面试题，蛇形闯关 + 学习卡片 + 四选一测验，纯静态、无构建、开箱即用。</p>
+    </div>
+    <div>
+      <h3 class="text-sm font-extrabold uppercase tracking-widest text-faint">页面导航</h3>
+      <ul class="mt-4 space-y-2.5 text-sm font-semibold text-sub">
+        <li><a href="#features" class="transition-all hover:text-duo-greentext">功能特性</a></li>
+        <li><a href="#gallery" class="transition-all hover:text-duo-greentext">界面预览</a></li>
+        <li><a href="#quickstart" class="transition-all hover:text-duo-greentext">快速上手</a></li>
+        <li><a href="#compare" class="transition-all hover:text-duo-greentext">方案对比</a></li>
+        <li><a href="#faq" class="transition-all hover:text-duo-greentext">常见问题</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="text-sm font-extrabold uppercase tracking-widest text-faint">开源信息</h3>
+      <ul class="mt-4 space-y-2.5 text-sm leading-6 text-sub">
+        <li>仓库：<a href="https://github.com/Samge0/AgentInterview" target="_blank" rel="noopener" class="font-semibold text-duo-greentext underline decoration-duo-green/40 underline-offset-4 transition-all hover:decoration-duo-green">github.com/Samge0/AgentInterview</a></li>
+        <li>作者：SamgeShao（@Samge0）· 深圳 · AI Agent 方向</li>
+        <li>快速开始：clone → <code class="rounded bg-paper px-1.5 py-0.5 font-mono text-xs text-duo-greentext">python -m http.server 8377</code> → 开始刷题</li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-black/5">
+    <p class="mx-auto max-w-7xl px-6 py-6 text-center text-xs font-medium text-faint lg:px-8">
+      AgentInterview · 开源免费 · 纯静态无追踪 · 数据保存在你自己的浏览器里 🟢
+    </p>
+  </div>
+</footer>
+
+<script>
+  // 滚动入场动画
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+  // 终端命令一键复制
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        const label = btn.querySelector('span');
+        const original = label.textContent;
+        label.textContent = '已复制 ✓';
+        setTimeout(() => { label.textContent = original; }, 1600);
+      } catch (err) { /* 剪贴板不可用时静默忽略 */ }
+    });
+  });
+</script>
+
+</body>
+</html>
