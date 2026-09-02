@@ -282,8 +282,10 @@ function renderLessonStep(el) {
         </div>
         <div class="lesson-foot">
           <button class="btn btn-ghost btn-sm" id="btn-prev" ${r.seq === 0 ? "disabled" : ""}>← 上一题</button>
-          <button class="btn btn-ghost btn-sm" id="btn-ai">🤖 AI 解读</button>
-          <button class="btn btn-primary" id="btn-next">继续</button>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-ghost btn-sm" id="btn-ai">🤖 AI 解读</button>
+            <button class="btn btn-primary" id="btn-next">${r.seq < r.list.length - 1 ? "继续" : "完成学习 🏁"}</button>
+          </div>
         </div>
       </div>`;
     $("#lx").addEventListener("click", () => { if (confirmExit()) setView("path"); });
@@ -325,6 +327,7 @@ function renderQuizStep(el, q) {
   }
   const keys = ["A", "B", "C", "D"].slice(0, quiz.options.length);
   const answeredPick = r.picks ? r.picks[q.id] : undefined; // 已答恢复态（返回上一题）
+  const hasNext = r.seq < r.list.length - 1;
   el.innerHTML = `
     <div class="lesson-wrap">
       <div class="lesson-head">
@@ -332,7 +335,7 @@ function renderQuizStep(el, q) {
         <div class="prompt-tag">${meta.icon} ${esc(meta.title)} · 测验</div>
       </div>
       <div class="lesson-body">
-        <div class="prompt-tag">选择最佳答案</div>
+        <div class="prompt-tag">选择最佳答案${answeredPick !== undefined ? "（已作答）" : ""}</div>
         <div class="q-title">${esc(quiz.stem || q.title)}</div>
         <div class="options" id="opts">
           ${quiz.options.map((o, i) => `
@@ -348,7 +351,10 @@ function renderQuizStep(el, q) {
       </div>
       <div class="lesson-foot">
         <button class="btn btn-ghost btn-sm" id="btn-prev" ${r.seq === 0 ? "disabled" : ""}>← 上一题</button>
-        ${answeredPick !== undefined ? '<button class="btn btn-ghost btn-sm" id="btn-rejudge">📋 查看判题</button>' : ""}
+        <div style="display:flex;gap:10px">
+          ${answeredPick !== undefined ? '<button class="btn btn-ghost btn-sm" id="btn-rejudge">📋 查看判题</button>' : ""}
+          ${answeredPick !== undefined ? `<button class="btn ${hasNext ? "btn-primary" : "btn-blue"} btn-sm" id="btn-qnext">${hasNext ? "下一题 →" : "看结果 🏁"}</button>` : ""}
+        </div>
       </div>
     </div>`;
   $("#lx").addEventListener("click", () => setView("path"));
@@ -364,6 +370,11 @@ function renderQuizStep(el, q) {
     });
     const rj = $("#btn-rejudge");
     if (rj) rj.addEventListener("click", () => showJudge(answeredPick === quiz.answer, quiz.explain || "可展开 AI 解读查看详解。", q, { restore: true }));
+    const qn = $("#btn-qnext");
+    if (qn) qn.addEventListener("click", () => {
+      if (answeredPick !== quiz.answer) { showAnswerDetail(q, { restore: true }); return; }
+      r.seq++; renderLessonStep($("#view"));
+    });
     return;
   }
 
@@ -373,7 +384,7 @@ function renderQuizStep(el, q) {
     r.picks = r.picks || {};
     r.picks[q.id] = picked;
     const ok = picked === quiz.answer;
-    r.total++;
+    r.answeredCount = (r.answeredCount || 0) + 1; // 已答题数（统计用，与进度条总数 r.total 分离）
     if (ok) { r.correct++; state.progress.xp += 15; } else r.mistakeIds.push(q.id);
     touchStreak(); saveProgress();
     $$(".option", el).forEach(b => {
@@ -411,7 +422,7 @@ function showJudge(ok, explain, q, opts = {}) {
   });
 }
 
-function showAnswerDetail(q) {
+function showAnswerDetail(q, opts = {}) {
   const old = $("#judge"); if (old) old.remove();
   const j = document.createElement("div");
   j.className = "judge bad"; j.id = "judge";
@@ -421,9 +432,13 @@ function showAnswerDetail(q) {
       <div class="j-title">参考答案</div>
       <div class="md" style="font-size:.84rem; max-height:26vh; overflow:auto; margin-top:6px">${mdRender(q.answer_md)}</div>
     </div>
-    <button class="btn btn-primary" id="j-next">继续</button>`;
+    <button class="btn btn-primary" id="j-next">${opts.restore ? "返回本题" : "继续"}</button>`;
   document.body.appendChild(j);
-  $("#j-next", j).addEventListener("click", () => { j.remove(); state.route.seq++; renderLessonStep($("#view")); });
+  $("#j-next", j).addEventListener("click", () => {
+    j.remove();
+    if (opts.restore) { renderLessonStep($("#view")); return; }
+    state.route.seq++; renderLessonStep($("#view"));
+  });
 }
 
 /* ---------- 学习模式的 AI 按钮 / 答题后的 AI ---------- */
@@ -560,11 +575,12 @@ function finishLesson() {
   const r = state.route;
   if (r.mode === "quiz") {
     const cp = chProg(r.chapter);
-    const acc = r.total ? Math.round(r.correct / r.total * 100) : 0;
+    const answered = r.answeredCount || 0;
+    const acc = answered ? Math.round(r.correct / answered * 100) : 0;
     if (acc > (cp.bestAccuracy || 0)) cp.bestAccuracy = acc;
-    cp.quizDone = r.total > 0 && acc >= 60;
+    cp.quizDone = answered > 0 && acc >= 60;
     saveProgress();
-    r.result = { acc, correct: r.correct, total: r.total, time: Math.round((Date.now() - r.t0) / 1000) };
+    r.result = { acc, correct: r.correct, total: answered, time: Math.round((Date.now() - r.t0) / 1000) };
   } else {
     r.result = null;
   }
@@ -713,13 +729,32 @@ function renderSettings(el) {
 
       <div class="set-card">
         <h3>🗑️ 数据管理</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" id="d-export">导出进度</button>
-          <button class="btn btn-ghost btn-sm" id="d-reset">清空学习进度</button>
-          <button class="btn btn-ghost btn-sm" id="d-reset-quiz">清除已生成选择题</button>
+        <div class="mgmt-row">
+          <span class="mg-label">📊 学习进度</span>
+          <span class="mg-btns">
+            <button class="btn btn-ghost btn-sm" id="d-export">导出</button>
+            <button class="btn btn-ghost btn-sm" id="d-import">导入</button>
+            <button class="btn btn-ghost btn-sm" id="d-reset">清空</button>
+          </span>
         </div>
+        <div class="mgmt-row">
+          <span class="mg-label">⚙️ 设置与 LLM 配置</span>
+          <span class="mg-btns">
+            <button class="btn btn-ghost btn-sm" id="c-export">导出</button>
+            <button class="btn btn-ghost btn-sm" id="c-import">导入</button>
+          </span>
+        </div>
+        <div class="mgmt-row">
+          <span class="mg-label">🎯 已生成选择题（浏览器内）</span>
+          <span class="mg-btns">
+            <button class="btn btn-ghost btn-sm" id="q-export">导出</button>
+            <button class="btn btn-ghost btn-sm" id="q-import">导入</button>
+            <button class="btn btn-ghost btn-sm" id="d-reset-quiz">清除</button>
+          </span>
+        </div>
+        <input type="file" id="file-import" accept="application/json,.json" hidden>
         <p style="font-size:.75rem;color:var(--ink-faint);margin-top:8px">
-          学习进度 / AI 解读缓存 / 浏览器内生成的选择题 分别存储，互不影响。
+          学习进度 / 设置 / AI 解读缓存 / 浏览器内生成的选择题 分别存储。导入均为合并式：进度与设置覆盖同名项，选择题按题目 id 去重（文件题库优先）。
         </p>
       </div>
       <p style="text-align:center;color:var(--ink-faint);font-size:.75rem;padding:8px 0 30px">
@@ -748,12 +783,73 @@ function renderSettings(el) {
   $("#s-unlock").addEventListener("change", (e) => { s.unlockAll = e.target.checked; saveProgress(); });
   $("#s-dark").addEventListener("change", (e) => { s.theme = e.target.checked ? "dark" : "light"; saveProgress(); render(); });
   $("#d-export").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify(state.progress, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "agent-interview-progress.json"; a.click();
+    downloadJSON(state.progress, "agent-interview-progress.json");
   });
+  $("#d-import").addEventListener("click", () => importJSONFile(async (data) => {
+    // 兼容完整进度对象
+    if (!data || typeof data !== "object" || (!data.chapters && !data.xp && !data.settings)) {
+      throw new Error("不是有效的进度文件（缺少 chapters/xp/settings）");
+    }
+    const d = defaultProgress();
+    const merged = Object.assign(d, data);
+    merged.settings = Object.assign(d.settings, data.settings || {});
+    // 校正章节进度结构
+    for (const id in merged.chapters) {
+      const c = merged.chapters[id];
+      merged.chapters[id] = { learned: Array.isArray(c.learned) ? c.learned : [], quizDone: !!c.quizDone, bestAccuracy: +c.bestAccuracy || 0 };
+    }
+    state.progress = merged;
+    saveProgress(); render();
+    return `已导入进度（XP ${merged.xp}，${Object.keys(merged.chapters).length} 章有记录）`;
+  }));
+  $("#c-export").addEventListener("click", () => {
+    const cfg = { type: "settings", exportedAt: new Date().toISOString(), settings: state.progress.settings };
+    downloadJSON(cfg, "agent-interview-settings.json");
+  });
+  $("#c-import").addEventListener("click", () => importJSONFile(async (data) => {
+    if (!data || typeof data !== "object" || !data.settings) throw new Error("不是有效的设置文件（缺少 settings）");
+    const d = defaultProgress();
+    state.progress.settings = Object.assign(d.settings, data.settings);
+    saveProgress(); renderSettings($("#view"));
+    return "已导入设置（LLM 配置已覆盖）";
+  }));
+  $("#q-export").addEventListener("click", () => {
+    const gen = loadGenQuizzes();
+    const n = Object.keys(gen).length;
+    if (!n) { toast("浏览器内没有已生成的选择题"); return; }
+    downloadJSON({ type: "gen-quizzes", exportedAt: new Date().toISOString(), quizzes: gen }, "agent-interview-quizzes.json");
+    toast(`已导出 ${n} 道选择题`);
+  });
+  $("#q-import").addEventListener("click", () => importJSONFile(async (data) => {
+    // 兼容两种格式：新版 {type:"gen-quizzes", quizzes:{qid:quiz}} / 旧版 gen-quizzes.json {chapters:{cid:[{id,quiz}]}}
+    let incoming = null;
+    if (data && data.quizzes && typeof data.quizzes === "object") incoming = data.quizzes;
+    else if (data && data.chapters && typeof data.chapters === "object") {
+      incoming = {};
+      for (const items of Object.values(data.chapters)) {
+        for (const it of (items || [])) if (it && it.id && it.quiz) incoming[it.id] = it.quiz;
+      }
+    }
+    if (!incoming) throw new Error("不是有效的选择题文件（缺少 quizzes/chapters）");
+    // 预载全部章节（用于文件题库去重比对）
+    await Promise.allSettled(state.chapters.map(c => loadChapter(c.id)));
+    // 逐条校验 + 去重合并（按 qid；文件题库已有的不覆盖——文件优先）
+    const cur = loadGenQuizzes();
+    let added = 0, skipped = 0, invalid = 0;
+    const fileQuizIds = new Set();
+    for (const cid in state.cache) for (const q of state.cache[cid]) if (q.quiz) fileQuizIds.add(q.id);
+    for (const [qid, quiz] of Object.entries(incoming)) {
+      if (!qid || !quiz || !Array.isArray(quiz.options) || quiz.options.length < 2) { invalid++; continue; }
+      if (fileQuizIds.has(qid)) { skipped++; continue; } // 文件题库里已有，不覆盖
+      if (Object.prototype.hasOwnProperty.call(cur, qid)) { skipped++; continue; } // 本地已存有，不覆盖（幂等）
+      cur[qid] = quiz; added++;
+    }
+    try { localStorage.setItem(LS_QUIZ_KEY, JSON.stringify(cur)); } catch (e) { throw new Error("写入失败（可能超出浏览器存储上限）"); }
+    updateGenCount();
+    return `已导入 ${added} 道${skipped ? `，跳过 ${skipped} 道（已有）` : ""}${invalid ? `，忽略 ${invalid} 道无效` : ""}`;
+  }));
   $("#d-reset").addEventListener("click", () => {
-    if (confirm("确定清空全部学习进度？（AI 解读缓存与已生成的选择题不受影响）")) {
+    if (confirm("确定清空全部学习进度？（设置 / AI 解读缓存 / 已生成的选择题不受影响）")) {
       localStorage.removeItem(LS_KEY); loadProgress(); render(); toast("已重置");
     }
   });
@@ -839,24 +935,10 @@ async function runBatchGen() {
 
 function exportGenQuizzes() {
   const gen = loadGenQuizzes();
-  const byChapter = {};
-  // 按章节组织（从全部缓存章节里找 qid 归属）
-  const belongs = {};
-  for (const cid in state.cache) for (const q of state.cache[cid]) belongs[q.id] = cid;
-  const ids = new Set();
-  for (const cid in state.cache) for (const q of state.cache[cid]) ids.add(q.id);
-  let count = 0;
-  for (const [qid, quiz] of Object.entries(gen)) {
-    if (!ids.has(qid)) continue; // 章节已不在，跳过
-    const cid = belongs[qid] || "unknown";
-    (byChapter[cid] = byChapter[cid] || []).push({ id: qid, quiz });
-    count++;
-  }
-  if (!count) { toast("没有可导出的生成结果"); return; }
-  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), chapters: byChapter }, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "gen-quizzes.json"; a.click();
+  const n = Object.keys(gen).length;
+  if (!n) { toast("浏览器内没有已生成的选择题"); return; }
+  downloadJSON({ type: "gen-quizzes", exportedAt: new Date().toISOString(), quizzes: gen }, "agent-interview-quizzes.json");
+  toast(`已导出 ${n} 道选择题`);
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -875,6 +957,34 @@ async function genQuizFor(q) {
   quiz.answer = Math.max(0, Math.min(quiz.options.length - 1, +quiz.answer || 0));
   quiz.options = quiz.options.map(o => String(o).replace(/^\s*[A-Da-d]\s*[\)．.、:：]\s*/, "").trim());
   return quiz;
+}
+
+/* ================= 导入导出 helper ================= */
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* 通用 JSON 文件导入：点按钮 -> 选文件 -> 读取 -> handler(data) 返回成功消息或抛错 */
+function importJSONFile(handler) {
+  const input = $("#file-import");
+  if (!input) return;
+  input.value = ""; // 允许重复选同一文件
+  input.onchange = async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const msg = await handler(data);
+      toast(msg || "导入成功");
+    } catch (e) {
+      toast("导入失败：" + (e.message || "JSON 解析错误"));
+    }
+  };
+  input.click();
 }
 
 /* ================= toast ================= */

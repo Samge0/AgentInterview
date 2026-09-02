@@ -243,8 +243,14 @@ details.more[open] summary::before { content: "▾ "; }
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
   background: rgba(255,255,255,.97); border-top: 2px solid var(--border-soft);
   padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-  display: flex; justify-content: flex-end; gap: 10px;
+  display: flex; justify-content: space-between; gap: 10px;
 }
+
+/* 设置页-数据管理行 */
+.mgmt-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--border-soft); }
+.mgmt-row:last-of-type { border-bottom: none; }
+.mg-label { font-size: .88rem; font-weight: 700; }
+.mg-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* AI 解读气泡 */
 .ai-box { margin-top: 14px; border: 2px solid #e4d4ff; background: #faf5ff; border-radius: 14px; padding: 14px; }
