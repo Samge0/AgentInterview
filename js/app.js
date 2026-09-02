@@ -67,6 +67,19 @@ function chProg(id) {
 }
 
 /* ================= 数据加载 ================= */
+const LS_QUIZ_KEY = "aiinterview.quizgen.v1"; // qid -> quiz（前端批量生成结果持久化）
+
+function loadGenQuizzes() {
+  try { return JSON.parse(localStorage.getItem(LS_QUIZ_KEY) || "{}"); }
+  catch (e) { return {}; }
+}
+function saveGenQuiz(qid, quiz) {
+  const c = loadGenQuizzes();
+  c[qid] = quiz;
+  try { localStorage.setItem(LS_QUIZ_KEY, JSON.stringify(c)); }
+  catch (e) { console.warn("quiz 缓存写入失败（可能超容量）", e); }
+}
+
 async function fetchJSON(url) {
   const r = await fetch(url, { cache: "no-cache" });
   if (!r.ok) throw new Error(`${url} -> ${r.status}`);
@@ -82,8 +95,14 @@ async function loadChapter(id) {
   if (state.cache[id]) return state.cache[id];
   const meta = state.chapters.find(c => c.id === id);
   const data = await fetchJSON(`data/questions/${meta.file}`);
-  state.cache[id] = data.questions || [];
-  return state.cache[id];
+  const qs = data.questions || [];
+  // 合并前端批量生成的 quiz（localStorage 持久化，优先级低于 JSON 文件里的 quiz）
+  const gen = loadGenQuizzes();
+  for (const q of qs) {
+    if (!q.quiz && gen[q.id]) q.quiz = gen[q.id];
+  }
+  state.cache[id] = qs;
+  return qs;
 }
 
 /* ================= markdown 渲染 ================= */
@@ -378,19 +397,125 @@ function showAnswerDetail(q) {
 }
 
 /* ---------- 学习模式的 AI 按钮 / 答题后的 AI ---------- */
-async function askAI(q) {
+const AI_CACHE_KEY = "aiinterview.ai.v1"; // qid -> {md, at}
+
+function loadAICache() {
+  try { return JSON.parse(localStorage.getItem(AI_CACHE_KEY) || "{}"); }
+  catch (e) { return {}; }
+}
+function saveAICacheEntry(qid, md) {
+  const c = loadAICache();
+  c[qid] = { md, at: Date.now() };
+  localStorage.setItem(AI_CACHE_KEY, JSON.stringify(c));
+}
+function getCachedAI(qid) {
+  return loadAICache()[qid] || null;
+}
+
+async function askAI(q, force = false) {
   const zone = $("#ai-zone"); const content = $("#ai-content");
   if (!zone || !content) return;
   if (!llmReady()) { toast("未配置大模型 API，请到设置页填写"); showSettingsFromAnywhere(); return; }
+
+  // 缓存命中：直接渲染（force=true 时走重新生成）
+  if (!force) {
+    const cached = getCachedAI(q.id);
+    if (cached && cached.md) {
+      zone.hidden = false;
+      renderAIBody(content, cached.md, q);
+      return;
+    }
+  }
+
   zone.hidden = false;
   content.innerHTML = `<div class="ai-loading">正在生成解读<span class="dots"></span></div>`;
   zone.scrollIntoView({ behavior: "smooth", block: "nearest" });
   try {
     const prompt = `你是一位资深的 AI 应用开发面试官。请针对下面的面试题和参考答案，给出简洁的解读与面试攻略：1) 核心考点一句话；2) 回答框架（要点式）；3) 常见追问 2-3 个及应对思路；4) 一个易错点。用中文，markdown 格式，总长不超过 500 字。\n\n## 面试题\n${q.title}\n\n## 参考答案\n${q.answer_md.slice(0, 3500)}`;
-    const md = await llmChat(prompt);
-    content.innerHTML = mdRender(md);
+    // 流式输出：边收边渲染
+    let acc = "";
+    await llmChatStream(prompt, (chunk) => {
+      acc += chunk;
+      content.innerHTML = mdRender(acc);
+      // 流式期间滚动跟随
+      const box = content.closest(".ai-box");
+      if (box) box.scrollIntoView({ block: "nearest" });
+    });
+    if (!acc.trim()) throw new Error("模型返回为空");
+    saveAICacheEntry(q.id, acc); // 自动缓存
+    renderAIBody(content, acc, q);
   } catch (e) {
     content.innerHTML = `<div style="color:var(--red);font-size:.85rem">AI 请求失败：${esc(e.message)}</div>`;
+  }
+}
+
+/* 渲染 AI 解读正文 + 底部操作条（缓存时间 / 重新解读） */
+function renderAIBody(content, md, q) {
+  content.innerHTML = mdRender(md);
+  // 操作条挂在 content 后（避免被 sanitize 影响，单独一个兄弟节点）
+  let foot = content.parentElement.querySelector(".ai-foot");
+  if (!foot) {
+    foot = document.createElement("div");
+    foot.className = "ai-foot";
+    foot.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #d9c8f5";
+    content.parentElement.appendChild(foot);
+  }
+  const cached = getCachedAI(q.id);
+  const when = cached ? new Date(cached.at).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+  foot.innerHTML = `
+    <span style="font-size:.72rem;color:var(--ink-faint)">${cached ? "缓存于 " + when : ""}</span>
+    <button class="btn btn-ghost btn-sm" style="box-shadow:none;padding:4px 12px" id="ai-regen">🔄 重新解读</button>`;
+  const btn = foot.querySelector("#ai-regen");
+  if (btn) btn.addEventListener("click", () => askAI(q, true));
+}
+
+/* ---------- LLM 流式调用（OpenAI 兼容 SSE） ---------- */
+async function llmChatStream(prompt, onChunk, opts = {}) {
+  const s = state.progress.settings;
+  const res = await fetch(`${s.baseURL}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${s.apiKey}` },
+    body: JSON.stringify({
+      model: s.model,
+      messages: [
+        { role: "system", content: "你是一位资深的 AI 应用开发面试辅导专家。" },
+        { role: "user", content: prompt },
+      ],
+      temperature: opts.temperature ?? 0.3,
+      max_tokens: opts.maxTokens ?? 1600,
+      stream: true,
+    }),
+  });
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.text()).slice(0, 200); } catch (e) {}
+    throw new Error(`HTTP ${res.status} ${detail}`);
+  }
+  if (!res.body) { // 环境不支持流式读取，退回非流式
+    const data = await res.json();
+    onChunk(data.choices?.[0]?.message?.content ?? "");
+    return;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() || "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (payload === "[DONE]") return;
+      try {
+        const j = JSON.parse(payload);
+        const delta = j.choices?.[0]?.delta?.content ?? "";
+        if (delta) onChunk(delta);
+      } catch (e) { /* 忽略半包 */ }
+    }
   }
 }
 
@@ -525,7 +650,8 @@ function renderSettings(el) {
       <div class="set-card">
         <h3>🎯 批量生成选择题</h3>
         <p style="font-size:.85rem;color:var(--ink-soft);line-height:1.7;margin-bottom:10px">
-          用大模型把各章问答批量衍生为四选一选择题（写入浏览器内存题库；也可用 <code>tools/gen_quiz.py</code> 预生成到 JSON 文件，离线可用）。
+          用大模型把各章问答批量衍生为四选一选择题。逐题保存到本浏览器（刷新/关闭不丢失，失败的题重跑即可补齐）；
+          也可用 <code>tools/gen_quiz.py</code> 直接生成到 JSON 文件。
           ${llmReady() ? "" : "<b>请先配置并保存上方 API。</b>"}
         </p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -533,9 +659,6 @@ function renderSettings(el) {
           <button class="btn btn-ghost btn-sm" id="g-export" hidden>💾 导出生成结果</button>
           <span style="font-size:.8rem;color:var(--ink-soft)" id="g-count"></span>
         </div>
-        <p style="font-size:.75rem;color:var(--ink-faint);margin-top:8px">
-          浏览器内生成只保存在当前页面内存；导出后可把 JSON 覆盖到 data/questions/ 对应文件实现持久化（或直接用 tools/gen_quiz.py 落盘）。
-        </p>
         <div class="gen-progress" id="g-progress" hidden>
           <div class="gen-bar"><div id="g-bar"></div></div>
           <div class="gen-log" id="g-log"></div>
@@ -558,8 +681,12 @@ function renderSettings(el) {
         <h3>🗑️ 数据管理</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" id="d-export">导出进度</button>
-          <button class="btn btn-danger btn-sm" id="d-reset">清空学习进度</button>
+          <button class="btn btn-ghost btn-sm" id="d-reset">清空学习进度</button>
+          <button class="btn btn-ghost btn-sm" id="d-reset-quiz">清除已生成选择题</button>
         </div>
+        <p style="font-size:.75rem;color:var(--ink-faint);margin-top:8px">
+          学习进度 / AI 解读缓存 / 浏览器内生成的选择题 分别存储，互不影响。
+        </p>
       </div>
       <p style="text-align:center;color:var(--ink-faint);font-size:.75rem;padding:8px 0 30px">
         题库数据：data/questions/*.json · 增删章节文件后刷新页面即可
@@ -592,8 +719,14 @@ function renderSettings(el) {
     a.href = URL.createObjectURL(blob); a.download = "agent-interview-progress.json"; a.click();
   });
   $("#d-reset").addEventListener("click", () => {
-    if (confirm("确定清空全部学习进度？此操作不可恢复")) {
+    if (confirm("确定清空全部学习进度？（AI 解读缓存与已生成的选择题不受影响）")) {
       localStorage.removeItem(LS_KEY); loadProgress(); render(); toast("已重置");
+    }
+  });
+  const dr = $("#d-reset-quiz");
+  if (dr) dr.addEventListener("click", () => {
+    if (confirm("确定删除本浏览器内 AI 批量生成的所有选择题？（JSON 文件里预生成的不受影响）")) {
+      localStorage.removeItem(LS_QUIZ_KEY); state.cache = {}; render(); toast("已清除");
     }
   });
   const g = $("#g-run");
@@ -651,7 +784,7 @@ async function runBatchGen() {
     for (const q of targets) {
       try {
         const quiz = await genQuizFor(q);
-        if (quiz) { q.quiz = quiz; okCount++; }
+        if (quiz) { q.quiz = quiz; okCount++; saveGenQuiz(q.id, quiz); } // 逐题持久化
       } catch (e) {
         failCount++;
         log.innerHTML += `<div>✗ ${esc(q.id)}: ${esc(e.message).slice(0, 80)}</div>`;
@@ -662,7 +795,7 @@ async function runBatchGen() {
       await sleep(150); // 温和限速
     }
   }
-  log.innerHTML += `<div style="font-weight:700;color:var(--green-dark)">完成：成功 ${okCount}，失败 ${failCount}（保存在当前页面内存，建议导出落盘）</div>`;
+  log.innerHTML += `<div style="font-weight:700;color:var(--green-dark)">完成：成功 ${okCount}，失败 ${failCount}（已保存到本浏览器，关闭页面不丢失；失败的可重跑批量生成补齐）</div>`;
   btn.disabled = false;
   const ex = $("#g-export");
   if (ex && okCount > 0) ex.hidden = false;
@@ -671,13 +804,22 @@ async function runBatchGen() {
 }
 
 function exportGenQuizzes() {
-  const bundle = { exportedAt: new Date().toISOString(), chapters: {} };
-  for (const id in state.cache) {
-    const withQuiz = state.cache[id].filter(q => q.quiz).map(q => ({ id: q.id, quiz: q.quiz }));
-    if (withQuiz.length) bundle.chapters[id] = withQuiz;
+  const gen = loadGenQuizzes();
+  const byChapter = {};
+  // 按章节组织（从全部缓存章节里找 qid 归属）
+  const belongs = {};
+  for (const cid in state.cache) for (const q of state.cache[cid]) belongs[q.id] = cid;
+  const ids = new Set();
+  for (const cid in state.cache) for (const q of state.cache[cid]) ids.add(q.id);
+  let count = 0;
+  for (const [qid, quiz] of Object.entries(gen)) {
+    if (!ids.has(qid)) continue; // 章节已不在，跳过
+    const cid = belongs[qid] || "unknown";
+    (byChapter[cid] = byChapter[cid] || []).push({ id: qid, quiz });
+    count++;
   }
-  if (!Object.keys(bundle.chapters).length) { toast("没有可导出的生成结果"); return; }
-  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+  if (!count) { toast("没有可导出的生成结果"); return; }
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), chapters: byChapter }, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "gen-quizzes.json"; a.click();
