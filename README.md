@@ -2,6 +2,24 @@
 
 多邻国式交互的面试题学习 H5，题库来自《AI 应用开发面试题 / Agent / RAG》（148 题 · 14 章），支持接入 OpenAI 兼容大模型 API 做 AI 解读与批量生成选择题。
 
+## 界面预览
+
+| 学习路径 | 章节入口 | 学习卡片 |
+|:---:|:---:|:---:|
+| ![学习路径](data/screenshots/01-path.png) | ![章节弹层](data/screenshots/02-chapter-pop.png) | ![学习卡片](data/screenshots/03-learn.png) |
+
+| 参考答案 | 章节测验 | 判题反馈 |
+|:---:|:---:|:---:|
+| ![参考答案](data/screenshots/04-learn-answer.png) | ![章节测验](data/screenshots/05-quiz.png) | ![判题反馈](data/screenshots/06-quiz-judge.png) |
+
+| 错题本 | 错题详情 | 统计 |
+|:---:|:---:|:---:|
+| ![错题本](data/screenshots/07-mistakes.png) | ![错题详情](data/screenshots/08-mistake-detail.png) | ![统计](data/screenshots/09-stats.png) |
+
+| 设置 |
+|:---:|
+| ![设置](data/screenshots/10-settings.png) |
+
 ## 快速开始
 
 ```bash
@@ -100,8 +118,9 @@ python tools/gen_quiz.py \
 index.html
 css/style.css
 js/app.js
-lib/            # marked.min.js + dompurify.min.js（本地）
-data/questions/ # 题库 JSON（14 章 148 题）
-data/assets/    # 答案图片
-tools/          # extract_questions.py / gen_quiz.py / apply_gen_quizzes.py
+lib/               # marked.min.js + dompurify.min.js（本地）
+data/questions/    # 题库 JSON（14 章 148 题）
+data/assets/       # 答案图片
+data/screenshots/  # README 展示用截图（Playwright 生成）
+tools/             # extract_questions.py / gen_quiz.py / apply_gen_quizzes.py
 ```
